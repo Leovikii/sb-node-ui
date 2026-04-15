@@ -1,0 +1,168 @@
+<template>
+  <div class="max-w-5xl mx-auto space-y-10 p-6 md:p-12">
+    <header class="text-center space-y-2">
+      <h1 class="text-4xl font-bold tracking-tight">Sing-Box</h1>
+      <p class="text-gray-500 font-medium">GitOps 多环境分发控制台</p>
+    </header>
+
+    <AppleCard class="space-y-6">
+      <h2 class="text-xl font-semibold">1. GitHub 授权配置</h2>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <AppleInput v-model="config.owner" placeholder="GitHub 用户名" />
+        <AppleInput v-model="config.repo" placeholder="私密仓库名" />
+        <AppleInput v-model="config.pat" type="password" placeholder="GitHub PAT" />
+      </div>
+      <AppleButton @click="loadRemoteState" :loading="loadingData" variant="secondary" class="w-full">
+        连接并拉取云端状态
+      </AppleButton>
+    </AppleCard>
+
+    <div v-if="stateData" class="space-y-8">
+      <div v-for="(profile, pIndex) in stateData.profiles" :key="pIndex" class="glass p-8 space-y-6 relative">
+        <button @click="removeProfile(pIndex)" class="absolute top-6 right-8 text-sm text-red-500 font-medium hover:underline">移除该环境</button>
+        <h2 class="text-2xl font-semibold border-b border-gray-200 pb-4 mb-4">
+          <input v-model="profile.name" class="bg-transparent outline-none border-b border-transparent focus:border-blue-500 transition-colors w-full" placeholder="环境命名 (如: momo)" />
+        </h2>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div class="space-y-2">
+            <label class="text-sm font-medium text-gray-500">公开模板 URL</label>
+            <AppleInput v-model="profile.templateUrl" placeholder="https://raw..." />
+          </div>
+          <div class="space-y-2">
+            <label class="text-sm font-medium text-gray-500">私有节点文件路径</label>
+            <AppleInput v-model="profile.privateDataPath" placeholder="nodes.json" />
+          </div>
+        </div>
+
+        <div class="flex items-center space-x-3 py-2">
+          <label class="relative inline-block w-11 h-6 cursor-pointer">
+            <input type="checkbox" v-model="profile.includeInbounds" class="sr-only peer">
+            <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#34c759]"></div>
+          </label>
+          <span class="text-sm font-medium text-gray-700">导入私有入站节点</span>
+        </div>
+
+        <div class="space-y-4 mt-6">
+          <h3 class="text-sm font-semibold text-gray-800">出站节点动态分组映射</h3>
+          <div v-for="(rule, rIndex) in profile.rules" :key="rIndex" class="flex gap-3 items-center bg-white/50 p-3 rounded-xl border border-gray-100">
+            <AppleInput v-model="rule.group" placeholder="Selector Tag" class="flex-1" />
+            <AppleInput v-model="rule.include" placeholder="包含关键字" class="flex-1" />
+            <AppleInput v-model="rule.exclude" placeholder="排除关键字" class="flex-1" />
+            <button @click="profile.rules.splice(rIndex, 1)" class="w-8 h-8 flex items-center justify-center rounded-full bg-red-50 text-red-500 hover:bg-red-100 transition shrink-0">✕</button>
+          </div>
+          <AppleButton @click="addRule(profile)" variant="secondary" class="w-full !py-2 text-sm border border-dashed border-gray-300 bg-transparent">
+            + 添加分组规则
+          </AppleButton>
+        </div>
+      </div>
+
+      <div class="flex gap-4 pt-4">
+        <AppleButton @click="addProfile" variant="secondary" class="flex-1 py-4 text-base">
+          + 新增环境配置
+        </AppleButton>
+        <AppleButton @click="saveRemoteState" :loading="savingData" variant="primary" class="flex-1 py-4 text-base shadow-lg shadow-blue-500/20">
+          保存并触发全局分发
+        </AppleButton>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { ref, reactive, onMounted } from 'vue';
+import AppleCard from './components/AppleCard.vue';
+import AppleInput from './components/AppleInput.vue';
+import AppleButton from './components/AppleButton.vue';
+import type { GithubConfig, StateData, Profile } from './types';
+
+const config = reactive<GithubConfig>({ owner: '', repo: '', pat: '' });
+const stateData = ref<StateData | null>(null);
+const fileSha = ref<string>('');
+const loadingData = ref(false);
+const savingData = ref(false);
+
+onMounted(() => {
+  const saved = localStorage.getItem('singbox-gitops-auth');
+  if (saved) {
+    Object.assign(config, JSON.parse(saved));
+  }
+});
+
+const encodeBase64 = (str: string) => window.btoa(unescape(encodeURIComponent(str)));
+const decodeBase64 = (str: string) => decodeURIComponent(escape(window.atob(str)));
+
+const apiCall = async (method: string, body: any = null) => {
+  const url = `https://api.github.com/repos/${config.owner}/${config.repo}/contents/rules.json`;
+  const opts: RequestInit = {
+    method,
+    headers: {
+      'Authorization': `Bearer ${config.pat}`,
+      'Accept': 'application/vnd.github.v3+json',
+      'Content-Type': 'application/json'
+    }
+  };
+  if (body) {
+    opts.body = JSON.stringify(body);
+  }
+  const res = await fetch(url, opts);
+  if (!res.ok) {
+    throw new Error(await res.text());
+  }
+  return res.json();
+};
+
+const loadRemoteState = async () => {
+  if (!config.owner || !config.repo || !config.pat) return;
+  loadingData.value = true;
+  try {
+    localStorage.setItem('singbox-gitops-auth', JSON.stringify(config));
+    const res = await apiCall('GET');
+    fileSha.value = res.sha;
+    stateData.value = JSON.parse(decodeBase64(res.content));
+  } catch (e) {
+    stateData.value = { profiles: [] };
+  } finally {
+    loadingData.value = false;
+  }
+};
+
+const saveRemoteState = async () => {
+  if (!stateData.value) return;
+  savingData.value = true;
+  try {
+    const payload = {
+      message: 'Deploy: update via WebUI',
+      content: encodeBase64(JSON.stringify(stateData.value, null, 2)),
+      sha: fileSha.value || undefined
+    };
+    const res = await apiCall('PUT', payload);
+    fileSha.value = res.content.sha;
+    alert('指令已下发至 GitHub Actions。产物即将自动推送到 Secret Gist。');
+  } catch (e) {
+    alert('保存失败');
+  } finally {
+    savingData.value = false;
+  }
+};
+
+const addProfile = () => {
+  if (!stateData.value) return;
+  stateData.value.profiles.push({
+    name: 'new_env',
+    templateUrl: '',
+    privateDataPath: 'nodes.json',
+    includeInbounds: false,
+    rules: []
+  });
+};
+
+const removeProfile = (index: number) => {
+  if (!stateData.value) return;
+  stateData.value.profiles.splice(index, 1);
+};
+
+const addRule = (profile: Profile) => {
+  profile.rules.push({ group: '', include: '', exclude: '' });
+};
+</script>

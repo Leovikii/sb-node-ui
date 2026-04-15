@@ -24,23 +24,21 @@
           <input v-model="profile.name" class="bg-transparent outline-none border-b border-transparent focus:border-blue-500 transition-colors w-full" placeholder="环境命名 (如: momo)" />
         </h2>
         
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div class="space-y-6">
           <div class="space-y-2">
             <label class="text-sm font-medium text-gray-500">公开模板 URL</label>
-            <AppleInput v-model="profile.templateUrl" placeholder="https://raw..." />
+            <AppleInput v-model="profile.templateUrl" placeholder="https://raw.githubusercontent.com/..." />
           </div>
-          <div class="space-y-2">
-            <label class="text-sm font-medium text-gray-500">私有节点文件路径</label>
-            <AppleInput v-model="profile.privateDataPath" placeholder="nodes.json" />
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="space-y-2">
+              <label class="text-sm font-medium text-gray-500">入站节点文件路径</label>
+              <AppleInput v-model="profile.inboundsPath" placeholder="例如: config/in.json (留空不导入)" />
+            </div>
+            <div class="space-y-2">
+              <label class="text-sm font-medium text-gray-500">出站节点文件路径</label>
+              <AppleInput v-model="profile.outboundsPath" placeholder="例如: config/out.json (留空不导入)" />
+            </div>
           </div>
-        </div>
-
-        <div class="flex items-center space-x-3 py-2">
-          <label class="relative inline-block w-11 h-6 cursor-pointer">
-            <input type="checkbox" v-model="profile.includeInbounds" class="sr-only peer">
-            <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#34c759]"></div>
-          </label>
-          <span class="text-sm font-medium text-gray-700">导入私有入站节点</span>
         </div>
 
         <div class="space-y-4 mt-6">
@@ -151,8 +149,8 @@ const addProfile = () => {
   stateData.value.profiles.push({
     name: 'new_env',
     templateUrl: '',
-    privateDataPath: 'nodes.json',
-    includeInbounds: false,
+    inboundsPath: '',
+    outboundsPath: '',
     rules: []
   });
 };

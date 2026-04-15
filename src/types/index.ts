@@ -13,8 +13,8 @@ export interface Rule {
 export interface Profile {
   name: string;
   templateUrl: string;
-  privateDataPath: string;
-  includeInbounds: boolean;
+  inboundsPath: string;
+  outboundsPath: string;
   rules: Rule[];
 }
 

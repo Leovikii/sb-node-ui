@@ -2,7 +2,13 @@
   <div class="max-w-5xl mx-auto space-y-10 p-6 md:p-12 pb-32">
     <header class="flex items-center justify-between">
       <div class="space-y-1">
-        <h1 class="text-3xl md:text-4xl font-bold tracking-tight text-[#f5f5f7]">Sing-Box</h1>
+        <div class="flex items-center gap-3">
+          <h1 class="text-3xl md:text-4xl font-bold tracking-tight text-[#f5f5f7]">Sing-Box</h1>
+          <span class="px-2 py-0.5 rounded-md bg-[#2c2c2e] text-[#F596AA] text-xs font-mono border border-[#38383a]">{{ APP_VERSION }}</span>
+          <a v-if="hasUpdate" :href="updateUrl" target="_blank" class="px-2 py-0.5 rounded-md bg-[#F596AA]/20 text-[#F596AA] text-xs font-medium border border-[#F596AA]/30 hover:bg-[#F596AA]/30 transition-colors animate-pulse cursor-pointer">
+            发现新版本 {{ latestVersion }}
+          </a>
+        </div>
         <p class="text-[#86868b] font-medium text-sm md:text-base">GitOps 多环境分发控制台</p>
       </div>
       
@@ -188,6 +194,11 @@ import AppleInput from './components/AppleInput.vue';
 import AppleButton from './components/AppleButton.vue';
 import type { GithubConfig, StateData, Profile, GithubUser } from './types';
 
+const APP_VERSION = 'v1.0.0';
+const hasUpdate = ref(false);
+const latestVersion = ref('');
+const updateUrl = ref('');
+
 const config = reactive<GithubConfig>({ owner: '', repo: '', pat: '', gistId: '' });
 const stateData = ref<StateData | null>(null);
 const user = ref<GithubUser | null>(null);
@@ -217,6 +228,18 @@ onMounted(async () => {
     }
   }
   isInitializing.value = false;
+
+  try {
+    const res = await fetch('https://api.github.com/repos/Leovikii/sb-node-ui/releases/latest');
+    if (res.ok) {
+      const data = await res.json();
+      if (data.tag_name && data.tag_name !== APP_VERSION) {
+        hasUpdate.value = true;
+        latestVersion.value = data.tag_name;
+        updateUrl.value = data.html_url;
+      }
+    }
+  } catch (e) {}
 });
 
 const encodeBase64 = (str: string) => window.btoa(unescape(encodeURIComponent(str)));

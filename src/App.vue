@@ -73,7 +73,7 @@ import { useApi } from './composables/useApi';
 import { useActionPolling } from './composables/useActionPolling';
 import type { GithubConfig, StateData, Profile } from './types';
 
-const APP_VERSION = 'v1.0.0';
+const APP_VERSION = 'v1.0.1';
 const hasUpdate = ref(false);
 const latestVersion = ref('');
 const updateUrl = ref('');

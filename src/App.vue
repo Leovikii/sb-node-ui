@@ -3,7 +3,7 @@
     <header class="flex items-center justify-between">
       <div class="space-y-1">
         <div class="flex items-center gap-3">
-          <h1 class="text-3xl md:text-4xl font-bold tracking-tight text-[#f5f5f7]">Sing-Box</h1>
+          <h1 class="text-3xl md:text-4xl font-bold tracking-tight text-[#f5f5f7]">Sing Sub</h1>
           <span class="px-2 py-0.5 rounded-md bg-[#2c2c2e] text-[#F596AA] text-xs font-mono border border-[#38383a]">{{ APP_VERSION }}</span>
           <a v-if="hasUpdate" :href="updateUrl" target="_blank" class="px-2 py-0.5 rounded-md bg-[#F596AA]/20 text-[#F596AA] text-xs font-medium border border-[#F596AA]/30 hover:bg-[#F596AA]/30 transition-colors animate-pulse cursor-pointer">
             发现新版本 {{ latestVersion }}

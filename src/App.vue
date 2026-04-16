@@ -205,7 +205,8 @@ const previewTitle = ref('');
 const previewContent = ref('');
 const previewLoading = ref(false);
 
-let pollInterval: any = null;
+let pollTimer: any = null;
+let isPolling = false;
 
 onMounted(async () => {
   const saved = localStorage.getItem('singbox-gitops-auth');
@@ -265,7 +266,7 @@ const repoApiCall = async (method: string, endpoint: string, body: any = null) =
 
 const getLatestRunId = async () => {
   try {
-    const data = await repoApiCall('GET', 'actions/runs?per_page=1');
+    const data = await repoApiCall('GET', `actions/runs?per_page=1&t=${Date.now()}`);
     if (data && data.workflow_runs && data.workflow_runs.length > 0) {
       return data.workflow_runs[0].id;
     }
@@ -279,7 +280,7 @@ const loadRemoteState = async () => {
   try {
     localStorage.setItem('singbox-gitops-auth', JSON.stringify(config));
     await fetchUserInfo();
-    const res = await repoApiCall('GET', 'contents/rules.json');
+    const res = await repoApiCall('GET', `contents/rules.json?t=${Date.now()}`);
     fileSha.value = res.sha;
     const parsedData = JSON.parse(decodeBase64(res.content));
     parsedData.profiles.forEach((p: Profile) => {
@@ -299,33 +300,43 @@ const loadRemoteState = async () => {
 
 const startActionPolling = (previousRunId: number) => {
   actionState.value = 'queued';
-  if (pollInterval) clearInterval(pollInterval);
-  
+  if (pollTimer) clearTimeout(pollTimer);
+  isPolling = true;
   let attempts = 0;
-  pollInterval = setInterval(async () => {
+
+  const poll = async () => {
+    if (!isPolling) return;
     attempts++;
     if (attempts > 60) {
-      clearInterval(pollInterval);
       actionState.value = 'idle';
+      isPolling = false;
       return;
     }
     try {
-      const data = await repoApiCall('GET', 'actions/runs?per_page=5');
+      const data = await repoApiCall('GET', `actions/runs?per_page=5&t=${Date.now()}`);
       const run = data.workflow_runs.find((r: any) => r.id > previousRunId);
       
-      if (!run) return;
+      if (!run) {
+        pollTimer = setTimeout(poll, 3000);
+        return;
+      }
 
       if (run.status === 'in_progress' || run.status === 'queued') {
         actionState.value = run.status;
+        pollTimer = setTimeout(poll, 3000);
       } else if (run.status === 'completed') {
         actionState.value = run.conclusion === 'success' ? 'success' : 'failure';
-        clearInterval(pollInterval);
+        isPolling = false;
         if (actionState.value === 'success') {
           setTimeout(() => { actionState.value = 'idle'; }, 4000);
         }
       }
-    } catch (e) {}
-  }, 3000);
+    } catch (e) {
+      pollTimer = setTimeout(poll, 3000);
+    }
+  };
+
+  poll();
 };
 
 const saveRemoteState = async () => {

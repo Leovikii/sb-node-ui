@@ -11,4 +11,4 @@ COOKIE_NAME = "sb_session"
 
 [[kv_namespaces]]
 binding = "SESSIONS"
-id = "<run: npx wrangler kv namespace create SESSIONS>"
+id = "66594dbcfd284d29918b5e61374c4096"

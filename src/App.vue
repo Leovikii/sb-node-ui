@@ -1,23 +1,42 @@
 <template>
   <div class="max-w-5xl mx-auto space-y-10 p-6 md:p-12">
-    <header class="text-center space-y-2">
-      <h1 class="text-4xl font-bold tracking-tight text-[#f5f5f7]">Sing-Box</h1>
-      <p class="text-[#86868b] font-medium">GitOps 多环境分发控制台</p>
+    <header class="flex items-center justify-between">
+      <div class="space-y-1">
+        <h1 class="text-3xl md:text-4xl font-bold tracking-tight text-[#f5f5f7]">Sing-Box</h1>
+        <p class="text-[#86868b] font-medium text-sm md:text-base">GitOps 多环境分发控制台</p>
+      </div>
+      
+      <div v-if="isConnected && user" class="flex items-center gap-3 cursor-pointer group" @click="showSettings = true">
+        <div class="hidden md:block text-right">
+          <div class="text-[#f5f5f7] font-medium text-sm">{{ user.login }}</div>
+          <div class="text-[#86868b] text-xs group-hover:text-[#F596AA] transition-colors">设置配置</div>
+        </div>
+        <img :src="user.avatar_url" class="w-10 h-10 md:w-12 md:h-12 rounded-full border-2 border-[#38383a] group-hover:border-[#F596AA] transition-all duration-200" />
+      </div>
     </header>
 
-    <AppleCard class="space-y-6">
-      <h2 class="text-xl font-semibold text-[#f5f5f7]">1. GitHub 授权配置</h2>
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <AppleInput v-model="config.owner" placeholder="GitHub 用户名" />
-        <AppleInput v-model="config.repo" placeholder="私密仓库名" />
-        <AppleInput v-model="config.pat" type="password" placeholder="GitHub PAT" />
-      </div>
-      <AppleButton @click="loadRemoteState" :loading="loadingData" variant="secondary" class="w-full">
-        连接并拉取云端状态
-      </AppleButton>
-    </AppleCard>
+    <div v-if="isInitializing" class="flex justify-center items-center py-32 text-[#86868b]">
+      <span class="animate-spin text-3xl">⚪</span>
+    </div>
 
-    <div v-if="stateData" class="space-y-8">
+    <div v-else-if="!isConnected" class="max-w-md mx-auto mt-16 relative z-10">
+      <AppleCard class="space-y-8 shadow-2xl">
+        <div class="text-center space-y-2">
+          <h2 class="text-2xl font-semibold text-[#f5f5f7]">连接到云端仓库</h2>
+          <p class="text-sm text-[#86868b]">请输入 GitHub 授权信息以加载配置</p>
+        </div>
+        <div class="space-y-4">
+          <AppleInput v-model="config.owner" placeholder="GitHub 用户名" />
+          <AppleInput v-model="config.repo" placeholder="私密仓库名 (如: singbox-private)" />
+          <AppleInput v-model="config.pat" type="password" placeholder="GitHub PAT" />
+        </div>
+        <AppleButton @click="loadRemoteState" :loading="loadingData" variant="primary" class="w-full !py-3">
+          验证并连接
+        </AppleButton>
+      </AppleCard>
+    </div>
+
+    <div v-else-if="stateData" class="space-y-8">
       <div v-for="(profile, pIndex) in stateData.profiles" :key="pIndex" class="glass p-8 space-y-6 relative">
         <button @click="removeProfile(pIndex)" class="absolute top-6 right-8 text-sm text-[#ff6961] font-medium hover:underline cursor-pointer">移除该环境</button>
         
@@ -94,6 +113,22 @@
         </AppleButton>
       </div>
     </div>
+
+    <div v-if="showSettings" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#121212]/80 backdrop-blur-md" @click.self="showSettings = false">
+      <AppleCard class="w-full max-w-md space-y-6 shadow-2xl relative border border-[#38383a]">
+        <button @click="showSettings = false" class="absolute top-6 right-6 text-[#86868b] hover:text-[#f5f5f7] transition-colors cursor-pointer">✕</button>
+        <h2 class="text-xl font-semibold text-[#f5f5f7]">仓库授权设置</h2>
+        <div class="space-y-4 pt-2">
+          <AppleInput v-model="config.owner" placeholder="GitHub 用户名" />
+          <AppleInput v-model="config.repo" placeholder="私密仓库名" />
+          <AppleInput v-model="config.pat" type="password" placeholder="GitHub PAT" />
+        </div>
+        <div class="flex gap-3 pt-2">
+          <AppleButton @click="showSettings = false" variant="secondary" class="flex-1">取消</AppleButton>
+          <AppleButton @click="loadRemoteState" :loading="loadingData" variant="primary" class="flex-1">验证并保存</AppleButton>
+        </div>
+      </AppleCard>
+    </div>
   </div>
 </template>
 
@@ -102,24 +137,43 @@ import { ref, reactive, onMounted } from 'vue';
 import AppleCard from './components/AppleCard.vue';
 import AppleInput from './components/AppleInput.vue';
 import AppleButton from './components/AppleButton.vue';
-import type { GithubConfig, StateData, Profile } from './types';
+import type { GithubConfig, StateData, Profile, GithubUser } from './types';
 
 const config = reactive<GithubConfig>({ owner: '', repo: '', pat: '' });
 const stateData = ref<StateData | null>(null);
+const user = ref<GithubUser | null>(null);
 const fileSha = ref<string>('');
 const loadingData = ref(false);
 const savingData = ref(false);
+const isConnected = ref(false);
+const showSettings = ref(false);
+const isInitializing = ref(true);
 const activeTabs = ref<Record<number, 'outbound' | 'inbound'>>({});
 
-onMounted(() => {
+onMounted(async () => {
   const saved = localStorage.getItem('singbox-gitops-auth');
   if (saved) {
     Object.assign(config, JSON.parse(saved));
+    if (config.owner && config.repo && config.pat) {
+      await loadRemoteState();
+    }
   }
+  isInitializing.value = false;
 });
 
 const encodeBase64 = (str: string) => window.btoa(unescape(encodeURIComponent(str)));
 const decodeBase64 = (str: string) => decodeURIComponent(escape(window.atob(str)));
+
+const fetchUserInfo = async () => {
+  try {
+    const res = await fetch(`https://api.github.com/users/${config.owner}`);
+    if (res.ok) {
+      user.value = await res.json();
+    }
+  } catch (e) {
+    user.value = null;
+  }
+};
 
 const apiCall = async (method: string, body: any = null) => {
   const url = `https://api.github.com/repos/${config.owner}/${config.repo}/contents/rules.json`;
@@ -146,6 +200,7 @@ const loadRemoteState = async () => {
   loadingData.value = true;
   try {
     localStorage.setItem('singbox-gitops-auth', JSON.stringify(config));
+    await fetchUserInfo();
     const res = await apiCall('GET');
     fileSha.value = res.sha;
     const parsedData = JSON.parse(decodeBase64(res.content));
@@ -154,8 +209,11 @@ const loadRemoteState = async () => {
       if (!p.inboundRules) p.inboundRules = [];
     });
     stateData.value = parsedData;
+    isConnected.value = true;
+    showSettings.value = false;
   } catch (e) {
-    stateData.value = { profiles: [] };
+    alert('连接失败，请检查仓库信息和 PAT 权限');
+    isConnected.value = false;
   } finally {
     loadingData.value = false;
   }

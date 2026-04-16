@@ -27,3 +27,8 @@ export interface Profile {
 export interface StateData {
   profiles: Profile[];
 }
+
+export interface GithubUser {
+  login: string;
+  avatar_url: string;
+}

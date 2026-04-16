@@ -32,26 +32,51 @@
           <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div class="space-y-2">
               <label class="text-sm font-medium text-gray-500">入站节点文件路径</label>
-              <AppleInput v-model="profile.inboundsPath" placeholder="例如: config/in.json (留空不导入)" />
+              <AppleInput v-model="profile.inboundsPath" placeholder="例如: gates.json (留空不导入)" />
             </div>
             <div class="space-y-2">
               <label class="text-sm font-medium text-gray-500">出站节点文件路径</label>
-              <AppleInput v-model="profile.outboundsPath" placeholder="例如: config/out.json (留空不导入)" />
+              <AppleInput v-model="profile.outboundsPath" placeholder="例如: nodes.json (留空不导入)" />
             </div>
           </div>
         </div>
 
-        <div class="space-y-4 mt-6">
-          <h3 class="text-sm font-semibold text-gray-800">出站节点动态分组映射</h3>
-          <div v-for="(rule, rIndex) in profile.rules" :key="rIndex" class="flex gap-3 items-center bg-white/50 p-3 rounded-xl border border-gray-100">
-            <AppleInput v-model="rule.group" placeholder="Selector Tag" class="flex-1" />
-            <AppleInput v-model="rule.include" placeholder="包含关键字" class="flex-1" />
-            <AppleInput v-model="rule.exclude" placeholder="排除关键字" class="flex-1" />
-            <button @click="profile.rules.splice(rIndex, 1)" class="w-8 h-8 flex items-center justify-center rounded-full bg-red-50 text-red-500 hover:bg-red-100 transition shrink-0">✕</button>
+        <div class="mt-8 border border-gray-200 rounded-2xl overflow-hidden bg-white/50">
+          <div class="flex border-b border-gray-200 bg-gray-50/50">
+            <button
+              @click="activeTabs[pIndex] = 'outbound'"
+              :class="['flex-1 py-3 text-sm font-medium transition-colors outline-none cursor-pointer', activeTabs[pIndex] !== 'inbound' ? 'text-[#0071e3] bg-white border-b-2 border-[#0071e3]' : 'text-gray-500 hover:text-gray-700 border-b-2 border-transparent']"
+            >出站节点分组映射</button>
+            <button
+              @click="activeTabs[pIndex] = 'inbound'"
+              :class="['flex-1 py-3 text-sm font-medium transition-colors outline-none cursor-pointer', activeTabs[pIndex] === 'inbound' ? 'text-[#0071e3] bg-white border-b-2 border-[#0071e3]' : 'text-gray-500 hover:text-gray-700 border-b-2 border-transparent']"
+            >入站节点规则筛选</button>
           </div>
-          <AppleButton @click="addRule(profile)" variant="secondary" class="w-full !py-2 text-sm border border-dashed border-gray-300 bg-transparent">
-            + 添加分组规则
-          </AppleButton>
+
+          <div class="p-5">
+            <div v-show="activeTabs[pIndex] !== 'inbound'" class="space-y-4">
+              <div v-for="(rule, rIndex) in profile.rules" :key="rIndex" class="flex gap-3 items-center bg-white p-3 rounded-xl border border-gray-100 shadow-sm">
+                <AppleInput v-model="rule.group" placeholder="Selector Tag" class="flex-1" />
+                <AppleInput v-model="rule.include" placeholder="包含关键字" class="flex-1" />
+                <AppleInput v-model="rule.exclude" placeholder="排除关键字" class="flex-1" />
+                <button @click="profile.rules.splice(rIndex, 1)" class="w-8 h-8 flex items-center justify-center rounded-full bg-red-50 text-red-500 hover:bg-red-100 transition shrink-0 cursor-pointer">✕</button>
+              </div>
+              <AppleButton @click="addRule(profile)" variant="secondary" class="w-full !py-2 text-sm border border-dashed border-gray-300 bg-transparent">
+                + 添加出站分组规则
+              </AppleButton>
+            </div>
+
+            <div v-show="activeTabs[pIndex] === 'inbound'" class="space-y-4">
+              <div v-for="(irule, irIndex) in profile.inboundRules" :key="irIndex" class="flex gap-3 items-center bg-white p-3 rounded-xl border border-gray-100 shadow-sm">
+                <AppleInput v-model="irule.include" placeholder="包含关键字 (匹配 tag)" class="flex-1" />
+                <AppleInput v-model="irule.exclude" placeholder="排除关键字" class="flex-1" />
+                <button @click="profile.inboundRules.splice(irIndex, 1)" class="w-8 h-8 flex items-center justify-center rounded-full bg-red-50 text-red-500 hover:bg-red-100 transition shrink-0 cursor-pointer">✕</button>
+              </div>
+              <AppleButton @click="addInboundRule(profile)" variant="secondary" class="w-full !py-2 text-sm border border-dashed border-gray-300 bg-transparent">
+                + 添加入站筛选规则
+              </AppleButton>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -79,6 +104,7 @@ const stateData = ref<StateData | null>(null);
 const fileSha = ref<string>('');
 const loadingData = ref(false);
 const savingData = ref(false);
+const activeTabs = ref<Record<number, 'outbound' | 'inbound'>>({});
 
 onMounted(() => {
   const saved = localStorage.getItem('singbox-gitops-auth');
@@ -117,7 +143,12 @@ const loadRemoteState = async () => {
     localStorage.setItem('singbox-gitops-auth', JSON.stringify(config));
     const res = await apiCall('GET');
     fileSha.value = res.sha;
-    stateData.value = JSON.parse(decodeBase64(res.content));
+    const parsedData = JSON.parse(decodeBase64(res.content));
+    parsedData.profiles.forEach((p: Profile) => {
+      if (!p.rules) p.rules = [];
+      if (!p.inboundRules) p.inboundRules = [];
+    });
+    stateData.value = parsedData;
   } catch (e) {
     stateData.value = { profiles: [] };
   } finally {
@@ -151,16 +182,22 @@ const addProfile = () => {
     templateUrl: '',
     inboundsPath: '',
     outboundsPath: '',
-    rules: []
+    rules: [],
+    inboundRules: []
   });
 };
 
 const removeProfile = (index: number) => {
   if (!stateData.value) return;
   stateData.value.profiles.splice(index, 1);
+  delete activeTabs.value[index];
 };
 
 const addRule = (profile: Profile) => {
   profile.rules.push({ group: '', include: '', exclude: '' });
+};
+
+const addInboundRule = (profile: Profile) => {
+  profile.inboundRules.push({ include: '', exclude: '' });
 };
 </script>

@@ -10,12 +10,18 @@ export interface Rule {
   exclude: string;
 }
 
+export interface InboundRule {
+  include: string;
+  exclude: string;
+}
+
 export interface Profile {
   name: string;
   templateUrl: string;
   inboundsPath: string;
   outboundsPath: string;
   rules: Rule[];
+  inboundRules: InboundRule[];
 }
 
 export interface StateData {

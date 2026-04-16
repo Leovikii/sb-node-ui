@@ -1,6 +1,7 @@
 name = "sb-node-ui"
 main = "worker/index.ts"
 compatibility_date = "2024-12-01"
+workers_dev = false
 
 [assets]
 directory = "./dist"

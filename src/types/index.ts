@@ -2,6 +2,7 @@ export interface GithubConfig {
   owner: string;
   repo: string;
   pat: string;
+  gistId: string;
 }
 
 export interface Rule {

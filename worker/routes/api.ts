@@ -42,7 +42,7 @@ export async function handleConnect(request: Request, env: Env): Promise<Respons
   const ghData = await ghRes.json() as { sha: string; content: string };
   const stateData = JSON.parse(decodeGithubContent(ghData.content));
 
-  const userRes = await fetchUser(owner);
+  const userRes = await fetchUser(pat);
   let userLogin = owner;
   let userAvatar = '';
   if (userRes.ok) {
@@ -94,6 +94,8 @@ export async function handleGetState(request: Request, env: Env): Promise<Respon
     state: stateData,
     sha: ghData.sha,
     user: { login: session.userLogin, avatar_url: session.userAvatar },
+    owner: session.owner,
+    repo: session.repo,
     gistId: session.gistId,
   });
 }

@@ -42,12 +42,12 @@ export function useApi() {
     }
   }
 
-  async function restoreSession(): Promise<{ state: StateData; sha: string; user: GithubUser } | null> {
+  async function restoreSession(): Promise<{ state: StateData; sha: string; user: GithubUser; owner: string; repo: string; gistId: string } | null> {
     try {
       const data = await apiCall('/api/state');
       user.value = data.user;
       isConnected.value = true;
-      return { state: data.state, sha: data.sha, user: data.user };
+      return { state: data.state, sha: data.sha, user: data.user, owner: data.owner, repo: data.repo, gistId: data.gistId };
     } catch {
       return null;
     }

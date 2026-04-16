@@ -39,11 +39,6 @@ export function gistFetch(gistId: string, pat: string): Promise<Response> {
   return githubFetch(`/gists/${gistId}`, pat);
 }
 
-export function fetchUser(owner: string): Promise<Response> {
-  return fetch(`${GITHUB_API}/users/${owner}`, {
-    headers: {
-      'Accept': 'application/vnd.github.v3+json',
-      'User-Agent': 'sb-node-ui-worker',
-    },
-  });
+export function fetchUser(pat: string): Promise<Response> {
+  return githubFetch('/user', pat);
 }

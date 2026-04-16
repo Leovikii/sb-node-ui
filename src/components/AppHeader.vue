@@ -17,23 +17,34 @@
         全局强制刷新
       </button>
 
-      <button @click="$emit('disconnect')" class="hidden md:flex items-center gap-2 text-sm font-medium text-[#86868b] hover:text-red-400 transition-colors cursor-pointer">
-        断开连接
-      </button>
-
-      <div class="flex items-center gap-3 cursor-pointer group" @click="$emit('openSettings')">
-        <div class="hidden md:block text-right">
-          <div class="text-[#f5f5f7] font-medium text-sm">{{ user.login }}</div>
-          <div class="text-[#86868b] text-xs group-hover:text-[#F596AA] transition-colors">设置配置</div>
+      <div class="relative">
+        <div class="flex items-center gap-3 cursor-pointer group" @click.stop="showDropdown = !showDropdown">
+          <div class="hidden md:block text-right">
+            <div class="text-[#f5f5f7] font-medium text-sm">{{ user.login }}</div>
+            <div class="text-[#86868b] text-xs group-hover:text-[#F596AA] transition-colors">设置配置</div>
+          </div>
+          <img :src="user.avatar_url" class="w-10 h-10 md:w-12 md:h-12 rounded-full border-2 border-[#38383a] group-hover:border-[#F596AA] transition-all duration-200" />
         </div>
-        <img :src="user.avatar_url" class="w-10 h-10 md:w-12 md:h-12 rounded-full border-2 border-[#38383a] group-hover:border-[#F596AA] transition-all duration-200" />
+
+        <UserDropdown
+          :visible="showDropdown"
+          :user="user"
+          :config="config"
+          :loading="loading"
+          @close="showDropdown = false"
+          @save="showDropdown = false; $emit('save')"
+          @disconnect="showDropdown = false; $emit('disconnect')"
+          @update:config="$emit('update:config', $event)"
+        />
       </div>
     </div>
   </header>
 </template>
 
 <script setup lang="ts">
-import type { GithubUser } from '../types';
+import { ref } from 'vue';
+import UserDropdown from './UserDropdown.vue';
+import type { GithubUser, GithubConfig } from '../types';
 
 defineProps<{
   user: GithubUser | null;
@@ -42,11 +53,16 @@ defineProps<{
   latestVersion: string;
   updateUrl: string;
   actionBusy: boolean;
+  config: GithubConfig;
+  loading: boolean;
 }>();
 
 defineEmits<{
   refresh: [];
-  openSettings: [];
+  save: [];
   disconnect: [];
+  'update:config': [value: GithubConfig];
 }>();
+
+const showDropdown = ref(false);
 </script>

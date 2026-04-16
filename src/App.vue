@@ -7,9 +7,12 @@
       :latestVersion="latestVersion"
       :updateUrl="updateUrl"
       :actionBusy="actionState === 'queued' || actionState === 'in_progress'"
+      :config="config"
+      :loading="loadingData"
       @refresh="handleRefresh"
-      @openSettings="showSettings = true"
+      @save="handleConnect"
       @disconnect="handleDisconnect"
+      @update:config="Object.assign(config, $event)"
     />
 
     <div v-if="isInitializing" class="flex justify-center items-center py-32 text-[#86868b]">
@@ -46,15 +49,6 @@
       </div>
     </div>
 
-    <SettingsModal
-      :visible="showSettings"
-      :config="config"
-      :loading="loadingData"
-      @update:config="Object.assign(config, $event)"
-      @save="handleConnect"
-      @close="showSettings = false"
-    />
-
     <PreviewModal
       :visible="showPreviewModal"
       :title="previewTitle"
@@ -72,7 +66,6 @@ import { ref, reactive, computed, onMounted } from 'vue';
 import AppHeader from './components/AppHeader.vue';
 import ConnectForm from './components/ConnectForm.vue';
 import ProfileEditor from './components/ProfileEditor.vue';
-import SettingsModal from './components/SettingsModal.vue';
 import PreviewModal from './components/PreviewModal.vue';
 import ActionStatus from './components/ActionStatus.vue';
 import AppleButton from './components/AppleButton.vue';
@@ -91,7 +84,6 @@ const fileSha = ref('');
 const loadingData = ref(false);
 const savingData = ref(false);
 const isInitializing = ref(true);
-const showSettings = ref(false);
 const copyStatus = ref<Record<number, boolean>>({});
 const showPreviewModal = ref(false);
 const previewTitle = ref('');
@@ -118,6 +110,9 @@ onMounted(async () => {
   if (session) {
     stateData.value = normalizeProfiles(session.state);
     fileSha.value = session.sha;
+    config.owner = session.owner;
+    config.repo = session.repo;
+    config.gistId = session.gistId;
   }
   isInitializing.value = false;
 
@@ -147,7 +142,6 @@ async function handleConnect() {
     const data = await connect(config);
     stateData.value = normalizeProfiles(data.state);
     fileSha.value = data.sha;
-    showSettings.value = false;
     config.pat = '';
   } catch {
     alert('连接失败，请检查仓库信息和 PAT 权限');

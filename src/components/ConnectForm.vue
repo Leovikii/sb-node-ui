@@ -23,7 +23,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue';
+import { ref, watch } from 'vue';
 import AppleCard from './AppleCard.vue';
 import AppleInput from './AppleInput.vue';
 import AppleButton from './AppleButton.vue';
@@ -39,13 +39,15 @@ const emit = defineEmits<{
   'update:config': [value: GithubConfig];
 }>();
 
-const ownerRepo = computed(() =>
-  props.config.owner || props.config.repo
-    ? `${props.config.owner}/${props.config.repo}`
-    : ''
-);
+const ownerRepo = ref('');
+
+watch(() => [props.config.owner, props.config.repo], ([o, r]) => {
+  const combined = o && r ? `${o}/${r}` : o || r;
+  if (combined !== ownerRepo.value) ownerRepo.value = combined;
+}, { immediate: true });
 
 function onOwnerRepoChange(value: string) {
+  ownerRepo.value = value;
   const slash = value.indexOf('/');
   const owner = slash >= 0 ? value.slice(0, slash) : value;
   const repo = slash >= 0 ? value.slice(slash + 1) : '';

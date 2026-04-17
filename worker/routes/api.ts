@@ -1,5 +1,5 @@
 import type { Env, SessionData } from '../types';
-import { getSessionId, getSession, createSession, deleteSession } from '../lib/session';
+import { getSessionId, getSession, createSession, deleteAllUserData } from '../lib/session';
 import { repoFetch, gistFetch, fetchUser } from '../lib/github';
 import { jsonResponse, errorResponse } from '../lib/security';
 
@@ -25,7 +25,7 @@ async function requireSession(request: Request, env: Env): Promise<SessionData |
 }
 
 export async function handleConnect(request: Request, env: Env): Promise<Response> {
-  const { owner, repo, pat, gistId: providedGistId } = await request.json() as {
+  const { owner, repo, pat, gistId } = await request.json() as {
     owner: string; repo: string; pat: string; gistId?: string;
   };
 
@@ -33,9 +33,7 @@ export async function handleConnect(request: Request, env: Env): Promise<Respons
     return errorResponse('Missing required fields', 400);
   }
 
-  const gistId = providedGistId || (await env.SESSIONS.get(`gist:${owner}/${repo}`)) || '';
-
-  const tempSession = { owner, repo, pat, gistId, userLogin: '', userAvatar: '', createdAt: 0 };
+  const tempSession = { owner, repo, pat, gistId: gistId || '', userLogin: '', userAvatar: '', createdAt: 0 };
   const ghRes = await repoFetch('contents/rules.json', tempSession);
   if (!ghRes.ok) {
     return errorResponse('GitHub authentication failed', 401);
@@ -53,21 +51,18 @@ export async function handleConnect(request: Request, env: Env): Promise<Respons
     userAvatar = userData.avatar_url;
   }
 
-  const { cookie } = await createSession(env, {
-    owner, repo, pat, gistId, userLogin, userAvatar,
+  const { cookie, sessionId } = await createSession(env, {
+    owner, repo, pat, gistId: gistId || '', userLogin, userAvatar,
   });
 
-  if (gistId) {
-    await env.SESSIONS.put(`sub:${gistId}`, JSON.stringify({ owner, pat, gistId }));
-    await env.SESSIONS.put(`gist:${owner}/${repo}`, gistId);
-  }
+  const session = await getSession(sessionId, env);
 
   return jsonResponse(
     {
       user: { login: userLogin, avatar_url: userAvatar },
       state: stateData,
       sha: ghData.sha,
-      gistId,
+      gistId: session?.gistId || '',
     },
     200,
     { 'Set-Cookie': cookie }
@@ -77,7 +72,7 @@ export async function handleConnect(request: Request, env: Env): Promise<Respons
 export async function handleDisconnect(request: Request, env: Env): Promise<Response> {
   const sid = getSessionId(request, env.COOKIE_NAME);
   if (sid) {
-    const cookie = await deleteSession(sid, env);
+    const cookie = await deleteAllUserData(sid, env);
     return jsonResponse({ ok: true }, 200, { 'Set-Cookie': cookie });
   }
   return jsonResponse({ ok: true });

@@ -12,3 +12,8 @@ export interface SessionData {
   userAvatar: string;
   createdAt: number;
 }
+
+export interface UserIndex {
+  sessionIds: string[];
+  gistId: string;
+}

@@ -17,10 +17,9 @@
       </div>
 
       <div class="space-y-3">
-        <AppleInput :modelValue="config.owner" @update:modelValue="update('owner', $event)" placeholder="GitHub 用户名" />
-        <AppleInput :modelValue="config.repo" @update:modelValue="update('repo', $event)" placeholder="私密仓库名" />
-        <AppleInput :modelValue="config.pat" @update:modelValue="update('pat', $event)" type="password" placeholder="GitHub PAT" />
-        <AppleInput :modelValue="config.gistId" @update:modelValue="update('gistId', $event)" placeholder="Secret Gist ID" />
+        <AppleInput :modelValue="ownerRepo" @update:modelValue="onOwnerRepoChange" placeholder="owner/repo" name="username" autocomplete="username" />
+        <AppleInput :modelValue="config.pat" @update:modelValue="update('pat', $event)" type="password" placeholder="GitHub PAT" name="password" autocomplete="current-password" />
+        <AppleInput :modelValue="config.gistId" @update:modelValue="update('gistId', $event)" placeholder="Secret Gist ID" name="gist-id" autocomplete="on" />
       </div>
 
       <div class="flex items-center justify-between pt-1">
@@ -36,7 +35,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onBeforeUnmount } from 'vue';
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
 import AppleInput from './AppleInput.vue';
 import AppleButton from './AppleButton.vue';
 import type { GithubConfig, GithubUser } from '../types';
@@ -56,6 +55,19 @@ const emit = defineEmits<{
 }>();
 
 const panelRef = ref<HTMLElement>();
+
+const ownerRepo = computed(() =>
+  props.config.owner || props.config.repo
+    ? `${props.config.owner}/${props.config.repo}`
+    : ''
+);
+
+function onOwnerRepoChange(value: string) {
+  const slash = value.indexOf('/');
+  const owner = slash >= 0 ? value.slice(0, slash) : value;
+  const repo = slash >= 0 ? value.slice(slash + 1) : '';
+  emit('update:config', { ...props.config, owner, repo });
+}
 
 function update(key: keyof GithubConfig, value: string) {
   emit('update:config', { ...props.config, [key]: value });

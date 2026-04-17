@@ -73,7 +73,7 @@ import { useApi } from './composables/useApi';
 import { useActionPolling } from './composables/useActionPolling';
 import type { GithubConfig, StateData, Profile } from './types';
 
-const APP_VERSION = 'v1.0.1';
+const APP_VERSION = 'v1.0.2';
 const hasUpdate = ref(false);
 const latestVersion = ref('');
 const updateUrl = ref('');
@@ -142,6 +142,7 @@ async function handleConnect() {
     const data = await connect(config);
     stateData.value = normalizeProfiles(data.state);
     fileSha.value = data.sha;
+    config.gistId = data.gistId;
     config.pat = '';
   } catch {
     alert('连接失败，请检查仓库信息和 PAT 权限');

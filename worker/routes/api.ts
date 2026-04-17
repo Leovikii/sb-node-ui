@@ -25,13 +25,15 @@ async function requireSession(request: Request, env: Env): Promise<SessionData |
 }
 
 export async function handleConnect(request: Request, env: Env): Promise<Response> {
-  const { owner, repo, pat, gistId } = await request.json() as {
-    owner: string; repo: string; pat: string; gistId: string;
+  const { owner, repo, pat, gistId: providedGistId } = await request.json() as {
+    owner: string; repo: string; pat: string; gistId?: string;
   };
 
   if (!owner || !repo || !pat) {
     return errorResponse('Missing required fields', 400);
   }
+
+  const gistId = providedGistId || (await env.SESSIONS.get(`gist:${owner}/${repo}`)) || '';
 
   const tempSession = { owner, repo, pat, gistId, userLogin: '', userAvatar: '', createdAt: 0 };
   const ghRes = await repoFetch('contents/rules.json', tempSession);
@@ -55,9 +57,9 @@ export async function handleConnect(request: Request, env: Env): Promise<Respons
     owner, repo, pat, gistId, userLogin, userAvatar,
   });
 
-  // Store subscription config keyed by gistId for /sub/{gistId}/{name}.json
   if (gistId) {
     await env.SESSIONS.put(`sub:${gistId}`, JSON.stringify({ owner, pat, gistId }));
+    await env.SESSIONS.put(`gist:${owner}/${repo}`, gistId);
   }
 
   return jsonResponse(
@@ -65,6 +67,7 @@ export async function handleConnect(request: Request, env: Env): Promise<Respons
       user: { login: userLogin, avatar_url: userAvatar },
       state: stateData,
       sha: ghData.sha,
+      gistId,
     },
     200,
     { 'Set-Cookie': cookie }

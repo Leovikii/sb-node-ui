@@ -6,6 +6,7 @@
       { 'opacity-70 cursor-not-allowed': loading }
     ]"
     :disabled="loading"
+    :type="type"
   >
     <span v-if="loading" class="mr-2 animate-spin">⚪</span>
     <slot></slot>
@@ -16,8 +17,10 @@
 withDefaults(defineProps<{
   variant?: 'primary' | 'secondary';
   loading?: boolean;
+  type?: 'button' | 'submit' | 'reset';
 }>(), {
   variant: 'primary',
-  loading: false
+  loading: false,
+  type: 'button'
 });
 </script>

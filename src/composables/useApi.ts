@@ -23,14 +23,14 @@ export function useApi() {
     return res.json();
   }
 
-  async function connect(config: GithubConfig): Promise<{ state: StateData; sha: string }> {
+  async function connect(config: GithubConfig): Promise<{ state: StateData; sha: string; gistId: string }> {
     const data = await apiCall('/api/connect', {
       method: 'POST',
       body: JSON.stringify(config),
     });
     user.value = data.user;
     isConnected.value = true;
-    return { state: data.state, sha: data.sha };
+    return { state: data.state, sha: data.sha, gistId: data.gistId || '' };
   }
 
   async function disconnect(): Promise<void> {

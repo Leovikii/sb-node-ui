@@ -58,6 +58,15 @@
     />
 
     <ActionStatus :state="actionState" :actionsUrl="actionsUrl" />
+
+    <ConfirmModal
+      :visible="showDisconnectConfirm"
+      title="确认断开连接"
+      message="此操作将清除服务器上保存的所有登录信息（包括其他设备的会话），相当于注销账号。下次登录需要重新输入所有凭据。"
+      confirmText="确认断开"
+      @confirm="confirmDisconnect"
+      @cancel="showDisconnectConfirm = false"
+    />
   </div>
 </template>
 
@@ -68,6 +77,7 @@ import ConnectForm from './components/ConnectForm.vue';
 import ProfileEditor from './components/ProfileEditor.vue';
 import PreviewModal from './components/PreviewModal.vue';
 import ActionStatus from './components/ActionStatus.vue';
+import ConfirmModal from './components/ConfirmModal.vue';
 import AppleButton from './components/AppleButton.vue';
 import { useApi } from './composables/useApi';
 import { useActionPolling } from './composables/useActionPolling';
@@ -86,6 +96,7 @@ const savingData = ref(false);
 const isInitializing = ref(true);
 const copyStatus = ref<Record<number, boolean>>({});
 const showPreviewModal = ref(false);
+const showDisconnectConfirm = ref(false);
 const previewTitle = ref('');
 const previewContent = ref('');
 const previewLoading = ref(false);
@@ -129,7 +140,12 @@ onMounted(async () => {
   } catch { /* ignore */ }
 });
 
-async function handleDisconnect() {
+function handleDisconnect() {
+  showDisconnectConfirm.value = true;
+}
+
+async function confirmDisconnect() {
+  showDisconnectConfirm.value = false;
   await disconnect();
   stateData.value = null;
   fileSha.value = '';

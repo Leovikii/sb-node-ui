@@ -43,10 +43,10 @@
 
       <div class="lg:col-span-2 flex gap-4 pt-4">
         <AppleButton @click="addProfile" variant="secondary" class="flex-1 py-4 text-base border border-[#38383a]">
-          + 新增环境配置
+          <Plus :size="16" class="inline -mt-0.5" /> 新增配置
         </AppleButton>
         <AppleButton @click="handleSave" :loading="savingData" variant="primary" class="flex-1 py-4 text-base relative overflow-hidden">
-          保存并触发全局分发
+          <Upload :size="16" class="inline -mt-0.5" /> 保存分发
         </AppleButton>
       </div>
     </div>
@@ -81,6 +81,7 @@ import PreviewModal from './components/PreviewModal.vue';
 import ActionStatus from './components/ActionStatus.vue';
 import ConfirmModal from './components/ConfirmModal.vue';
 import AppleButton from './components/AppleButton.vue';
+import { Plus, Upload } from 'lucide-vue-next';
 import { useApi } from './composables/useApi';
 import { useActionPolling } from './composables/useActionPolling';
 import type { GithubConfig, StateData, Profile } from './types';

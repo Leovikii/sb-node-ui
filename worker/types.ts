@@ -6,14 +6,22 @@ export interface Env {
 export interface SessionData {
   owner: string;
   repo: string;
-  pat: string;
-  gistId: string;
-  userLogin: string;
-  userAvatar: string;
   createdAt: number;
 }
 
 export interface UserIndex {
   sessionIds: string[];
+  pat: string;
   gistId: string;
+  userLogin: string;
+  userAvatar: string;
+}
+
+export interface ResolvedSession {
+  owner: string;
+  repo: string;
+  pat: string;
+  gistId: string;
+  userLogin: string;
+  userAvatar: string;
 }

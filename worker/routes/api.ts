@@ -1,5 +1,5 @@
-import type { Env, SessionData } from '../types';
-import { getSessionId, getSession, createSession, updateSession, deleteAllUserData } from '../lib/session';
+import type { Env, ResolvedSession } from '../types';
+import { getSessionId, resolveSession, createOrUpdateSession, deleteAllUserData } from '../lib/session';
 import { repoFetch, gistFetch, fetchUser } from '../lib/github';
 import { jsonResponse, errorResponse } from '../lib/security';
 
@@ -16,10 +16,10 @@ function encodeToBase64(str: string): string {
   return btoa(binary);
 }
 
-async function requireSession(request: Request, env: Env): Promise<SessionData | Response> {
+async function requireSession(request: Request, env: Env): Promise<ResolvedSession | Response> {
   const sid = getSessionId(request, env.COOKIE_NAME);
   if (!sid) return errorResponse('Not authenticated', 401);
-  const session = await getSession(sid, env);
+  const session = await resolveSession(sid, env);
   if (!session) return errorResponse('Session expired', 401);
   return session;
 }
@@ -52,33 +52,19 @@ export async function handleConnect(request: Request, env: Env): Promise<Respons
   }
 
   const existingSid = getSessionId(request, env.COOKIE_NAME);
-  let cookie: string;
-  let sessionId: string;
-
-  if (existingSid && await getSession(existingSid, env)) {
-    cookie = await updateSession(env, existingSid, {
-      owner, repo, pat, gistId: gistId || '', userLogin, userAvatar,
-    });
-    sessionId = existingSid;
-  } else {
-    const result = await createSession(env, {
-      owner, repo, pat, gistId: gistId || '', userLogin, userAvatar,
-    });
-    cookie = result.cookie;
-    sessionId = result.sessionId;
-  }
-
-  const session = await getSession(sessionId, env);
+  const result = await createOrUpdateSession(env, existingSid, {
+    owner, repo, pat, gistId: gistId || '', userLogin, userAvatar,
+  });
 
   return jsonResponse(
     {
       user: { login: userLogin, avatar_url: userAvatar },
       state: stateData,
       sha: ghData.sha,
-      gistId: session?.gistId || '',
+      gistId: result.gistId,
     },
     200,
-    { 'Set-Cookie': cookie }
+    { 'Set-Cookie': result.cookie }
   );
 }
 

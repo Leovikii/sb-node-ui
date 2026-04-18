@@ -31,39 +31,24 @@
         <span class="bg-[#2c2c2e] text-[#86868b] text-xs rounded-full px-2.5 py-1">入站 {{ inboundCount }}</span>
         <span class="bg-[#2c2c2e] text-[#86868b] text-xs rounded-full px-2.5 py-1">出站 {{ outboundCount }}</span>
       </div>
-    </div>
 
-    <!-- Mobile action bar -->
-    <div v-if="!isExpanded" class="flex md:hidden items-center gap-2 px-5 pb-4 -mt-1">
-      <div class="flex-1"></div>
-      <button @click.stop="$emit('preview', profile.name)" class="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium text-[#86868b] hover:text-[#f5f5f7] bg-[#2c2c2e] border border-[#38383a] hover:border-[#86868b] transition-colors cursor-pointer">
-        <Eye :size="14" />预览
-      </button>
-      <button @click.stop="$emit('copyLink', profile.name, index)" class="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium text-[#86868b] hover:text-[#f5f5f7] bg-[#2c2c2e] border border-[#38383a] hover:border-[#86868b] transition-colors cursor-pointer">
-        <component :is="copyStatus ? Check : Link" :size="14" />{{ copyStatus ? '已复制' : '复制链接' }}
-      </button>
-      <button @click.stop="$emit('remove', index)" class="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium text-[#ff6961] hover:text-[#ff3b30] bg-[#ff6961]/10 border border-[#ff6961]/20 hover:border-[#ff6961]/40 transition-colors cursor-pointer">
-        <Trash2 :size="14" />移除
-      </button>
+      <div class="flex md:hidden items-center gap-2 pt-1">
+        <button @click.stop="$emit('preview', profile.name)" class="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium text-[#86868b] hover:text-[#f5f5f7] bg-[#2c2c2e] border border-[#38383a] hover:border-[#86868b] transition-colors cursor-pointer">
+          <Eye :size="14" />预览
+        </button>
+        <button @click.stop="$emit('copyLink', profile.name, index)" class="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium text-[#86868b] hover:text-[#f5f5f7] bg-[#2c2c2e] border border-[#38383a] hover:border-[#86868b] transition-colors cursor-pointer">
+          <component :is="copyStatus ? Check : Link" :size="14" />{{ copyStatus ? '已复制' : '复制链接' }}
+        </button>
+        <button @click.stop="$emit('remove', index)" class="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium text-[#ff6961] hover:text-[#ff3b30] bg-[#ff6961]/10 border border-[#ff6961]/20 hover:border-[#ff6961]/40 transition-colors cursor-pointer">
+          <Trash2 :size="14" />移除
+        </button>
+      </div>
     </div>
 
     <!-- Expanded Body -->
     <div :class="['expand-grid', { 'is-open': isExpanded }]">
       <div class="expand-content">
         <div class="px-5 pb-6 space-y-6">
-          <!-- Mobile actions when expanded -->
-          <div class="flex md:hidden items-center gap-2">
-            <button @click.stop="$emit('preview', profile.name)" class="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium text-[#86868b] hover:text-[#f5f5f7] bg-[#2c2c2e] border border-[#38383a] hover:border-[#86868b] transition-colors cursor-pointer">
-              <Eye :size="14" />预览
-            </button>
-            <button @click.stop="$emit('copyLink', profile.name, index)" class="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium text-[#86868b] hover:text-[#f5f5f7] bg-[#2c2c2e] border border-[#38383a] hover:border-[#86868b] transition-colors cursor-pointer">
-              <component :is="copyStatus ? Check : Link" :size="14" />{{ copyStatus ? '已复制' : '复制链接' }}
-            </button>
-            <button @click.stop="$emit('remove', index)" class="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium text-[#ff6961] hover:text-[#ff3b30] bg-[#ff6961]/10 border border-[#ff6961]/20 hover:border-[#ff6961]/40 transition-colors cursor-pointer">
-              <Trash2 :size="14" />移除
-            </button>
-          </div>
-
           <!-- Profile name -->
           <div class="border-b border-[#38383a] pb-6">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">

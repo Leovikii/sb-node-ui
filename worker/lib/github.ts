@@ -1,5 +1,3 @@
-import type { SessionData } from '../types';
-
 const GITHUB_API = 'https://api.github.com';
 
 interface GithubRequestOptions {
@@ -26,9 +24,15 @@ export async function githubFetch(
   return fetch(`${GITHUB_API}${path}`, init);
 }
 
+interface RepoSession {
+  owner: string;
+  repo: string;
+  pat: string;
+}
+
 export function repoFetch(
   endpoint: string,
-  session: SessionData,
+  session: RepoSession,
   options: GithubRequestOptions = {}
 ): Promise<Response> {
   const path = `/repos/${session.owner}/${session.repo}${endpoint ? '/' + endpoint : ''}`;

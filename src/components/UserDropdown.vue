@@ -17,16 +17,16 @@
       </div>
 
       <div class="space-y-3">
-        <AppleInput :modelValue="ownerRepo" @update:modelValue="onOwnerRepoChange" placeholder="owner/repo" name="username" autocomplete="username" />
-        <AppleInput :modelValue="config.pat" @update:modelValue="update('pat', $event)" type="password" placeholder="GitHub PAT" name="password" autocomplete="current-password" />
-        <AppleInput :modelValue="config.gistId" @update:modelValue="update('gistId', $event)" placeholder="Secret Gist ID" name="gist-id" autocomplete="on" />
+        <AppleInput :modelValue="ownerRepo" @update:modelValue="onOwnerRepoChange" placeholder="owner/repo" />
+        <AppleInput v-model="editPat" type="password" placeholder="更新 PAT (留空则不修改)" />
+        <AppleInput v-model="editToken" placeholder="订阅 Token" />
       </div>
 
       <div class="flex items-center justify-between pt-1">
         <button @click="$emit('disconnect')" class="text-sm text-red-400 hover:text-red-300 transition-colors cursor-pointer">
           断开连接
         </button>
-        <AppleButton @click="$emit('save')" :loading="loading" variant="primary" class="px-5">
+        <AppleButton @click="handleSave" :loading="loading" variant="primary" class="px-5">
           保存
         </AppleButton>
       </div>
@@ -38,41 +38,44 @@
 import { ref, watch, onMounted, onBeforeUnmount } from 'vue';
 import AppleInput from './AppleInput.vue';
 import AppleButton from './AppleButton.vue';
-import type { GithubConfig, GithubUser } from '../types';
+import type { UserSettings, GithubUser } from '../types';
 
 const props = defineProps<{
   visible: boolean;
   user: GithubUser | null;
-  config: GithubConfig;
+  settings: UserSettings | null;
   loading: boolean;
 }>();
 
 const emit = defineEmits<{
   close: [];
-  save: [];
+  save: [value: { owner: string; repo: string; pat: string; subToken: string }];
   disconnect: [];
-  'update:config': [value: GithubConfig];
+  'update:settings': [value: Partial<UserSettings>];
 }>();
 
 const panelRef = ref<HTMLElement>();
-
 const ownerRepo = ref('');
+const editPat = ref('');
+const editToken = ref('');
 
-watch(() => [props.config.owner, props.config.repo], ([o, r]) => {
-  const combined = o && r ? `${o}/${r}` : o || r;
-  if (combined !== ownerRepo.value) ownerRepo.value = combined;
+watch(() => props.settings, (s) => {
+  if (s) {
+    ownerRepo.value = `${s.owner}/${s.repo}`;
+    editToken.value = s.subToken;
+  }
 }, { immediate: true });
 
 function onOwnerRepoChange(value: string) {
   ownerRepo.value = value;
-  const slash = value.indexOf('/');
-  const owner = slash >= 0 ? value.slice(0, slash) : value;
-  const repo = slash >= 0 ? value.slice(slash + 1) : '';
-  emit('update:config', { ...props.config, owner, repo });
 }
 
-function update(key: keyof GithubConfig, value: string) {
-  emit('update:config', { ...props.config, [key]: value });
+function handleSave() {
+  const slash = ownerRepo.value.indexOf('/');
+  const owner = slash >= 0 ? ownerRepo.value.slice(0, slash) : ownerRepo.value;
+  const repo = slash >= 0 ? ownerRepo.value.slice(slash + 1) : '';
+  emit('save', { owner, repo, pat: editPat.value, subToken: editToken.value });
+  editPat.value = '';
 }
 
 function onClickOutside(e: MouseEvent) {

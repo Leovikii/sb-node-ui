@@ -7,9 +7,6 @@ workers_dev = false
 directory = "./dist"
 not_found_handling = "single-page-application"
 
-[vars]
-COOKIE_NAME = "sb_session"
-
 [[kv_namespaces]]
 binding = "SESSIONS"
 id = "66594dbcfd284d29918b5e61374c4096"

@@ -3,9 +3,6 @@
     <AppHeader
       :user="user"
       :appVersion="APP_VERSION"
-      :hasUpdate="hasUpdate"
-      :latestVersion="latestVersion"
-      :updateUrl="updateUrl"
       :settings="settings"
       :loading="loadingData"
       @save="handleSaveSettings"
@@ -39,14 +36,6 @@
         @remove="removeProfile"
       />
 
-      <div class="lg:col-span-2 flex gap-4 pt-4">
-        <AppleButton @click="addProfile" variant="secondary" class="flex-1 py-4 text-base border border-[#38383a]">
-          <Plus :size="16" class="inline -mt-0.5" /> 新增配置
-        </AppleButton>
-        <AppleButton @click="handleSave" :loading="savingData" variant="primary" class="flex-1 py-4 text-base relative overflow-hidden">
-          <Upload :size="16" class="inline -mt-0.5" /> 保存分发
-        </AppleButton>
-      </div>
     </div>
 
     <PreviewModal
@@ -65,6 +54,17 @@
       @confirm="confirmDisconnect"
       @cancel="showDisconnectConfirm = false"
     />
+
+    <FloatingActions
+      v-if="stateData"
+      :saveState="saveStatus"
+      :refreshing="refreshing"
+      @refresh="handleRefresh"
+      @add="addProfile"
+      @save="handleSave"
+    />
+
+    <StatusToast :status="saveStatus" :message="statusMessage" />
   </div>
 </template>
 
@@ -75,21 +75,20 @@ import ConnectForm from './components/ConnectForm.vue';
 import ProfileEditor from './components/ProfileEditor.vue';
 import PreviewModal from './components/PreviewModal.vue';
 import ConfirmModal from './components/ConfirmModal.vue';
-import AppleButton from './components/AppleButton.vue';
-import { Plus, Upload } from 'lucide-vue-next';
+import FloatingActions from './components/FloatingActions.vue';
+import StatusToast from './components/StatusToast.vue';
 import { useApi } from './composables/useApi';
 import type { SetupData, UserSettings, StateData, Profile } from './types';
 
 const APP_VERSION = 'v2.0.0';
-const hasUpdate = ref(false);
-const latestVersion = ref('');
-const updateUrl = ref('');
 
 const setupData = reactive<SetupData>({ owner: '', repo: '', pat: '', subToken: '' });
 const stateData = ref<StateData | null>(null);
 const fileSha = ref<string | null>(null);
 const loadingData = ref(false);
-const savingData = ref(false);
+const saveStatus = ref<'idle' | 'saving' | 'success' | 'error'>('idle');
+const statusMessage = ref('');
+const refreshing = ref(false);
 const isInitializing = ref(true);
 const copyStatus = ref<Record<number, boolean>>({});
 const showPreviewModal = ref(false);
@@ -123,18 +122,6 @@ onMounted(async () => {
     } catch { /* settings not configured yet */ }
   }
   isInitializing.value = false;
-
-  try {
-    const res = await fetch('https://api.github.com/repos/Leovikii/Sing-Sub/releases/latest');
-    if (res.ok) {
-      const data = await res.json();
-      if (data.tag_name && data.tag_name !== APP_VERSION) {
-        hasUpdate.value = true;
-        latestVersion.value = data.tag_name;
-        updateUrl.value = data.html_url;
-      }
-    }
-  } catch { /* ignore */ }
 });
 
 async function handleSetup() {
@@ -186,14 +173,31 @@ async function confirmDisconnect() {
 
 async function handleSave() {
   if (!stateData.value) return;
-  savingData.value = true;
+  saveStatus.value = 'saving';
+  statusMessage.value = '';
   try {
     const data = await saveState(stateData.value, fileSha.value);
     fileSha.value = data.sha;
+    saveStatus.value = 'success';
+    setTimeout(() => { saveStatus.value = 'idle'; }, 3000);
   } catch (e: any) {
-    alert('保存失败: ' + e.message);
+    saveStatus.value = 'error';
+    statusMessage.value = e.message || '保存失败';
+    setTimeout(() => { saveStatus.value = 'idle'; }, 5000);
+  }
+}
+
+async function handleRefresh() {
+  if (refreshing.value) return;
+  refreshing.value = true;
+  try {
+    const data = await getState();
+    stateData.value = normalizeProfiles(data.state);
+    fileSha.value = data.sha;
+  } catch (e: any) {
+    alert('刷新失败: ' + e.message);
   } finally {
-    savingData.value = false;
+    refreshing.value = false;
   }
 }
 

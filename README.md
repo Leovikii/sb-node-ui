@@ -1,90 +1,84 @@
 # Sing Sub
 
-A GitOps-based multi-environment configuration distribution console for [sing-box](https://sing-box.sagernet.org/). Manage sing-box profiles through a web UI, store configurations in a private GitHub repo, and distribute subscription links via Cloudflare Workers.
+Edge-based multi-environment configuration distribution console for [sing-box](https://sing-box.sagernet.org/). Manage sing-box profiles through a web UI, store configurations in a private GitHub repo, and distribute subscription links via Cloudflare Workers.
 
 ## Features
 
-- **Server-side security** — GitHub PAT is stored in Cloudflare KV, never exposed to the browser. Sessions use httpOnly cookies.
-- **GitOps workflow** — Configurations are committed to GitHub, triggering Actions to build and publish to Gist.
-- **Subscription proxy** — Worker proxies Gist content at `/sub/{gistId}/{name}.json` with User-Agent filtering (sing-box clients only).
+- **Zero Trust auth** — Cloudflare Access protects the management UI. No passwords or cookies to manage.
+- **Server-side security** — GitHub PAT stored in Cloudflare KV, never exposed to the browser.
+- **Edge config building** — Worker fetches templates and nodes from GitHub, merges them on the fly, and caches in KV. No GitHub Actions or Gist needed.
+- **Subscription distribution** — `/sub/{token}/{name}.json` with User-Agent filtering (sing-box clients only).
 - **Multi-profile** — Manage multiple environments (e.g. `home`, `office`, `travel`) with independent inbound/outbound rules and templates.
-- **Auto-deploy** — Push to `main` triggers GitHub Actions to build and deploy to Cloudflare Workers automatically.
+- **Auto-deploy** — Push to `main` triggers GitHub Actions to deploy the Worker automatically.
 
 ## Tech Stack
 
 - **Frontend**: Vue 3 (Composition API) + TypeScript + Vite + Tailwind CSS v4
 - **Backend**: Cloudflare Workers + KV
-- **CI/CD**: GitHub Actions
+- **Auth**: Cloudflare Zero Trust (Access)
+- **CI/CD**: GitHub Actions (deploy only)
 
 ## Prerequisites
 
-1. A **private GitHub repo** with the following structure:
+1. A **private GitHub repo** with your sing-box data:
 
    ```
    your-private-repo/
-   ├── rules.json              # Managed by this UI (auto-created on first save)
-   ├── templates/
-   │   └── default.json        # sing-box config template (JSON format)
-   ├── inbounds/
-   │   └── home.json           # Inbound node definitions
-   ├── outbounds/
-   │   └── nodes.json          # Outbound node definitions
-   └── .github/workflows/
-       └── build.yml           # Action that builds final configs and publishes to Gist
+   ├── sing-sub/
+   │   └── rules.json          # Managed by this UI (auto-created on first save)
+   ├── outbounds.json           # Outbound node definitions
+   └── inbounds.json            # Inbound node definitions (optional)
    ```
 
-   - **Template**: A sing-box JSON config with placeholder sections for inbounds/outbounds injection.
-   - **Inbounds/Outbounds**: JSON files containing arrays of sing-box inbound/outbound objects.
+   Templates can be hosted anywhere as public URLs (e.g. raw GitHub links).
 
-2. A **GitHub Personal Access Token (PAT)** with these permissions:
-   - `repo` (full access to private repos)
-   - `gist` (read/write Gists)
-   - `workflow` (trigger Actions)
+2. A **GitHub Personal Access Token (PAT)** with `repo` permission (read/write private repos).
 
    Create one at: https://github.com/settings/tokens
 
-3. A **GitHub Gist** to host the generated subscription files.
-   - Create a Gist at https://gist.github.com (content doesn't matter, it will be overwritten)
-   - Copy the Gist ID from the URL: `https://gist.github.com/username/{gist_id}`
-
-4. A **Cloudflare account** (free plan is sufficient).
+3. A **Cloudflare account** with a custom domain.
 
 ## Deployment
 
 ### 1. Create KV Namespace
 
 - Cloudflare Dashboard → Storage & Databases → KV → Create a namespace
-- Name: `sb-node-ui-SESSIONS`
-- Copy the Namespace ID and paste it into `wrangler.toml`
+- Copy the Namespace ID and update `wrangler.toml`
 
-### 2. Set GitHub Secrets
+### 2. Configure Zero Trust
 
-- Go to your **sb-node-ui** repo → Settings → Secrets → Actions
-- Add `CLOUDFLARE_API_TOKEN`:
-  - Create at https://dash.cloudflare.com/profile/api-tokens
-  - Use the "Edit Cloudflare Workers" template
+Create two Access Applications in Cloudflare Zero Trust dashboard:
 
-### 3. Push to Deploy
+**Application 1 — Protect management UI:**
+- Type: Self-hosted
+- Domain: `your-domain.com`
+- Policy: Allow, selector = Emails, value = your email
+
+**Application 2 — Bypass subscription endpoint:**
+- Type: Self-hosted
+- Domain: `your-domain.com`, Path: `sub`
+- Policy: Bypass, selector = Everyone
+
+### 3. Set GitHub Secrets
+
+- Go to your repo → Settings → Secrets → Actions
+- Add `CLOUDFLARE_API_TOKEN` (use the "Edit Cloudflare Workers" template)
+
+### 4. Push to Deploy
 
 ```bash
 git push origin main
 ```
 
-GitHub Actions will automatically build and deploy to Cloudflare Workers.
-
-### 4. Custom Domain (Optional)
-
-- Workers & Pages → sb-node-ui → Settings → Domains & Routes → Add Custom Domain
-
 ## Usage
 
-1. Open your Worker URL
-2. Enter your GitHub owner, repo name, PAT, and Gist ID → Connect
-3. Add/edit profiles — each profile specifies a template URL, inbounds/outbounds paths, and filtering rules
-4. Save → triggers a commit to `rules.json` and a GitHub Actions build
-5. Copy the subscription link for each profile → paste into sing-box client
+1. Open your domain → Cloudflare Access login (email verification)
+2. First visit: configure GitHub repo, PAT, and custom subscription token
+3. Add/edit profiles — each profile specifies a template URL, node file paths, and filtering rules
+4. Save → commits `sing-sub/rules.json` to GitHub and builds all configs on the edge
+5. Copy the subscription link → paste into sing-box client
 
-Subscription URL format: `https://your-domain/sub/{gistId}/{profile_name}.json`
+Subscription URL format: `https://your-domain/sub/{token}/{profile_name}.json`
 
 ## License
 

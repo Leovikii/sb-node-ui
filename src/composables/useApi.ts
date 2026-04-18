@@ -59,7 +59,7 @@ export function useApi() {
     return apiCall('/api/state');
   }
 
-  async function saveState(state: StateData, sha: string | null): Promise<{ sha: string }> {
+  async function saveState(state: StateData, sha: string | null): Promise<{ sha: string; warning?: string }> {
     return apiCall('/api/state', {
       method: 'PUT',
       body: JSON.stringify({ state, sha }),

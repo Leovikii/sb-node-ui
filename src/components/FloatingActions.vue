@@ -29,12 +29,12 @@
       <button
         @click="handleSave"
         :disabled="saveState !== 'idle'"
-        class="fab-btn group"
+        class="fab-btn fab-save group"
         :class="{
           'fab-success': saveState === 'success',
           'fab-error': saveState === 'error',
         }"
-        title="保存分发"
+        title="保存所有配置"
       >
         <Loader2
           v-if="saveState === 'saving'"
@@ -51,10 +51,10 @@
           :size="20"
           class="fab-icon text-red-400"
         />
-        <Upload
+        <Save
           v-else
           :size="20"
-          class="fab-icon text-[#86868b] transition-colors duration-200 group-hover:text-[#f5f5f7]"
+          class="fab-icon text-[#F596AA] transition-colors duration-200 group-hover:text-[#f5f5f7]"
         />
       </button>
     </div>
@@ -63,10 +63,10 @@
 
 <script setup lang="ts">
 import { ref } from 'vue';
-import { RefreshCw, Plus, Upload, Check, X, Loader2 } from 'lucide-vue-next';
+import { RefreshCw, Plus, Save, Check, X, Loader2 } from 'lucide-vue-next';
 
 const props = defineProps<{
-  saveState: 'idle' | 'saving' | 'success' | 'error';
+  saveState: 'idle' | 'saving' | 'refreshing' | 'success' | 'warning' | 'error';
   refreshing: boolean;
 }>();
 
@@ -153,6 +153,10 @@ function handleSave() {
 .fab-error {
   background: rgba(239, 68, 68, 0.15) !important;
   border-color: rgba(239, 68, 68, 0.3) !important;
+}
+
+.fab-save {
+  border-color: rgba(245, 150, 170, 0.25);
 }
 
 .fab-bounce {

@@ -133,7 +133,12 @@ export async function handlePutState(request: Request, env: Env): Promise<Respon
   const content = JSON.stringify(state, null, 2);
   const result = await putFileContent(RULES_PATH, session, content, sha, 'Update rules via Sing-Sub');
 
-  await buildAllProfiles(state.profiles, session, auth.settings.subToken, env);
+  try {
+    await buildAllProfiles(state.profiles, session, auth.settings.subToken, env);
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : 'Build failed';
+    return jsonResponse({ sha: result.sha, warning: msg });
+  }
 
   return jsonResponse({ sha: result.sha });
 }

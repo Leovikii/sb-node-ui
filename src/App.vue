@@ -86,7 +86,7 @@ const setupData = reactive<SetupData>({ owner: '', repo: '', pat: '', subToken: 
 const stateData = ref<StateData | null>(null);
 const fileSha = ref<string | null>(null);
 const loadingData = ref(false);
-const saveStatus = ref<'idle' | 'saving' | 'success' | 'error'>('idle');
+const saveStatus = ref<'idle' | 'saving' | 'refreshing' | 'success' | 'warning' | 'error'>('idle');
 const statusMessage = ref('');
 const refreshing = ref(false);
 const isInitializing = ref(true);
@@ -178,8 +178,15 @@ async function handleSave() {
   try {
     const data = await saveState(stateData.value, fileSha.value);
     fileSha.value = data.sha;
-    saveStatus.value = 'success';
-    setTimeout(() => { saveStatus.value = 'idle'; }, 3000);
+    if (data.warning) {
+      saveStatus.value = 'warning';
+      statusMessage.value = '规则已保存，但构建失败: ' + data.warning;
+      setTimeout(() => { saveStatus.value = 'idle'; }, 5000);
+    } else {
+      saveStatus.value = 'success';
+      statusMessage.value = '保存成功，配置已更新';
+      setTimeout(() => { saveStatus.value = 'idle'; }, 3000);
+    }
   } catch (e: any) {
     saveStatus.value = 'error';
     statusMessage.value = e.message || '保存失败';
@@ -190,12 +197,19 @@ async function handleSave() {
 async function handleRefresh() {
   if (refreshing.value) return;
   refreshing.value = true;
+  saveStatus.value = 'refreshing';
+  statusMessage.value = '';
   try {
     const data = await getState();
     stateData.value = normalizeProfiles(data.state);
     fileSha.value = data.sha;
+    saveStatus.value = 'success';
+    statusMessage.value = '刷新成功';
+    setTimeout(() => { saveStatus.value = 'idle'; }, 3000);
   } catch (e: any) {
-    alert('刷新失败: ' + e.message);
+    saveStatus.value = 'error';
+    statusMessage.value = '刷新失败: ' + e.message;
+    setTimeout(() => { saveStatus.value = 'idle'; }, 5000);
   } finally {
     refreshing.value = false;
   }

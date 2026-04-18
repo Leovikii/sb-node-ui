@@ -42,8 +42,9 @@ export default {
       } else {
         return new Response(null, { status: 404 });
       }
-    } catch {
-      response = errorResponse('Internal server error', 500);
+    } catch (e) {
+      const message = e instanceof Error ? e.message : 'Internal server error';
+      response = errorResponse(message, 500);
     }
 
     return addSecurityHeaders(response);

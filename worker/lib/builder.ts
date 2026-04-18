@@ -37,7 +37,12 @@ function normalizeArray<T>(data: unknown, key: string): T[] {
 }
 
 async function fetchJson(url: string): Promise<unknown> {
-  const res = await fetch(url);
+  const res = await fetch(url, {
+    headers: {
+      'User-Agent': 'sing-sub-worker',
+      'Accept': 'application/json',
+    },
+  });
   if (!res.ok) throw new Error(`Fetch failed: ${url} (${res.status})`);
   return res.json();
 }

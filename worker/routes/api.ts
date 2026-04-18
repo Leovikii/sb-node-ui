@@ -1,5 +1,5 @@
 import type { Env, SessionData } from '../types';
-import { getSessionId, getSession, createSession, deleteAllUserData } from '../lib/session';
+import { getSessionId, getSession, createSession, updateSession, deleteAllUserData } from '../lib/session';
 import { repoFetch, gistFetch, fetchUser } from '../lib/github';
 import { jsonResponse, errorResponse } from '../lib/security';
 
@@ -51,9 +51,22 @@ export async function handleConnect(request: Request, env: Env): Promise<Respons
     userAvatar = userData.avatar_url;
   }
 
-  const { cookie, sessionId } = await createSession(env, {
-    owner, repo, pat, gistId: gistId || '', userLogin, userAvatar,
-  });
+  const existingSid = getSessionId(request, env.COOKIE_NAME);
+  let cookie: string;
+  let sessionId: string;
+
+  if (existingSid && await getSession(existingSid, env)) {
+    cookie = await updateSession(env, existingSid, {
+      owner, repo, pat, gistId: gistId || '', userLogin, userAvatar,
+    });
+    sessionId = existingSid;
+  } else {
+    const result = await createSession(env, {
+      owner, repo, pat, gistId: gistId || '', userLogin, userAvatar,
+    });
+    cookie = result.cookie;
+    sessionId = result.sessionId;
+  }
 
   const session = await getSession(sessionId, env);
 

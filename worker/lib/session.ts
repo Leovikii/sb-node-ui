@@ -26,27 +26,8 @@ async function getUserIndex(owner: string, repo: string, env: Env): Promise<User
   return raw ? JSON.parse(raw) as UserIndex : null;
 }
 
-export async function createSession(
-  env: Env,
-  data: Omit<SessionData, 'createdAt'>
-): Promise<{ sessionId: string; cookie: string }> {
-  const sessionId = generateSessionId();
-  const session: SessionData = { ...data, createdAt: Date.now() };
-
-  const existing = await getUserIndex(data.owner, data.repo, env);
-  const gistId = data.gistId || existing?.gistId || '';
-  session.gistId = gistId;
-
-  await env.SESSIONS.put(sessionId, JSON.stringify(session));
-
-  const sessionIds = existing ? [...existing.sessionIds, sessionId] : [sessionId];
-  await env.SESSIONS.put(userKey(data.owner, data.repo), JSON.stringify({ sessionIds, gistId }));
-
-  if (gistId) {
-    await env.SESSIONS.put(`sub:${gistId}`, JSON.stringify({ owner: data.owner, pat: data.pat, gistId }));
-  }
-
-  const cookie = [
+function makeCookie(env: Env, sessionId: string): string {
+  return [
     `${env.COOKIE_NAME}=${sessionId}`,
     'Path=/',
     'HttpOnly',
@@ -54,8 +35,64 @@ export async function createSession(
     'SameSite=Strict',
     'Max-Age=31536000',
   ].join('; ');
+}
 
-  return { sessionId, cookie };
+async function syncUserIndex(
+  env: Env, owner: string, repo: string, sessionId: string, gistId: string
+): Promise<void> {
+  const existing = await getUserIndex(owner, repo, env);
+  let sessionIds: string[];
+
+  if (existing) {
+    const checks = await Promise.all(
+      existing.sessionIds.map(async id => ({ id, alive: !!(await env.SESSIONS.get(id)) }))
+    );
+    sessionIds = checks.filter(c => c.alive).map(c => c.id);
+    if (!sessionIds.includes(sessionId)) sessionIds.push(sessionId);
+  } else {
+    sessionIds = [sessionId];
+  }
+
+  const resolvedGistId = gistId || existing?.gistId || '';
+  await env.SESSIONS.put(userKey(owner, repo), JSON.stringify({ sessionIds, gistId: resolvedGistId }));
+
+  if (resolvedGistId) {
+    const session = await getSession(sessionId, env);
+    if (session) {
+      await env.SESSIONS.put(`sub:${resolvedGistId}`, JSON.stringify({ owner, pat: session.pat, gistId: resolvedGistId }));
+    }
+  }
+}
+
+export async function createSession(
+  env: Env,
+  data: Omit<SessionData, 'createdAt'>
+): Promise<{ sessionId: string; cookie: string }> {
+  const sessionId = generateSessionId();
+  const existing = await getUserIndex(data.owner, data.repo, env);
+  const gistId = data.gistId || existing?.gistId || '';
+
+  const session: SessionData = { ...data, gistId, createdAt: Date.now() };
+  await env.SESSIONS.put(sessionId, JSON.stringify(session));
+  await syncUserIndex(env, data.owner, data.repo, sessionId, gistId);
+
+  return { sessionId, cookie: makeCookie(env, sessionId) };
+}
+
+export async function updateSession(
+  env: Env,
+  sessionId: string,
+  data: Omit<SessionData, 'createdAt'>
+): Promise<string> {
+  const old = await getSession(sessionId, env);
+  const existing = await getUserIndex(data.owner, data.repo, env);
+  const gistId = data.gistId || existing?.gistId || '';
+
+  const session: SessionData = { ...data, gistId, createdAt: old?.createdAt || Date.now() };
+  await env.SESSIONS.put(sessionId, JSON.stringify(session));
+  await syncUserIndex(env, data.owner, data.repo, sessionId, gistId);
+
+  return makeCookie(env, sessionId);
 }
 
 export async function deleteAllUserData(sessionId: string, env: Env): Promise<string> {

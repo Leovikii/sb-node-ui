@@ -8,20 +8,15 @@
           发现新版本 {{ latestVersion }}
         </a>
       </div>
-      <p class="text-[#86868b] font-medium text-sm md:text-base">GitOps 多环境分发控制台</p>
+      <p class="text-[#86868b] font-medium text-sm md:text-base">Edge 多环境分发控制台</p>
     </div>
 
-    <div v-if="user" class="flex items-center gap-6">
-      <button @click="$emit('refresh')" :disabled="actionBusy" class="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs md:text-sm font-medium text-[#86868b] hover:text-[#f5f5f7] bg-[#2c2c2e] border border-[#38383a] hover:border-[#86868b] transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">
-        <RefreshCw :size="14" :class="{'animate-spin': actionBusy}" />
-        <span class="hidden md:inline">全局强制刷新</span>
-      </button>
-
+    <div v-if="user" class="flex items-center gap-3">
       <div class="relative">
         <div class="flex items-center gap-3 cursor-pointer group" @click.stop="showDropdown = !showDropdown">
           <div class="hidden md:block text-right">
             <div class="text-[#f5f5f7] font-medium text-sm">{{ user.login }}</div>
-            <div class="text-[#86868b] text-xs group-hover:text-[#F596AA] transition-colors">设置配置</div>
+            <div class="text-[#86868b] text-xs group-hover:text-[#F596AA] transition-colors">设置</div>
           </div>
           <img :src="user.avatar_url" class="w-10 h-10 md:w-12 md:h-12 rounded-full border-2 border-[#38383a] group-hover:border-[#F596AA] transition-all duration-200" />
         </div>
@@ -29,12 +24,12 @@
         <UserDropdown
           :visible="showDropdown"
           :user="user"
-          :config="config"
+          :settings="settings"
           :loading="loading"
           @close="showDropdown = false"
-          @save="showDropdown = false; $emit('save')"
+          @save="showDropdown = false; $emit('save', $event)"
           @disconnect="showDropdown = false; $emit('disconnect')"
-          @update:config="$emit('update:config', $event)"
+          @update:settings="$emit('update:settings', $event)"
         />
       </div>
     </div>
@@ -43,9 +38,8 @@
 
 <script setup lang="ts">
 import { ref } from 'vue';
-import { RefreshCw } from 'lucide-vue-next';
 import UserDropdown from './UserDropdown.vue';
-import type { GithubUser, GithubConfig } from '../types';
+import type { GithubUser, UserSettings } from '../types';
 
 defineProps<{
   user: GithubUser | null;
@@ -53,16 +47,14 @@ defineProps<{
   hasUpdate: boolean;
   latestVersion: string;
   updateUrl: string;
-  actionBusy: boolean;
-  config: GithubConfig;
+  settings: UserSettings | null;
   loading: boolean;
 }>();
 
 defineEmits<{
-  refresh: [];
-  save: [];
+  save: [value: any];
   disconnect: [];
-  'update:config': [value: GithubConfig];
+  'update:settings': [value: Partial<UserSettings>];
 }>();
 
 const showDropdown = ref(false);

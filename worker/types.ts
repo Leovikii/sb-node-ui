@@ -1,27 +1,30 @@
 export interface Env {
   SESSIONS: KVNamespace;
-  COOKIE_NAME: string;
 }
 
-export interface SessionData {
+export interface UserSettings {
+  pat: string;
   owner: string;
   repo: string;
-  createdAt: number;
-}
-
-export interface UserIndex {
-  sessionIds: string[];
-  pat: string;
-  gistId: string;
+  subToken: string;
   userLogin: string;
   userAvatar: string;
 }
 
-export interface ResolvedSession {
-  owner: string;
-  repo: string;
-  pat: string;
-  gistId: string;
-  userLogin: string;
-  userAvatar: string;
+export interface UserIdentity {
+  email: string;
+}
+
+export interface Profile {
+  name: string;
+  note?: string;
+  templateUrl: string;
+  inboundsPath: string;
+  outboundsPath: string;
+  rules: { group: string; include: string; exclude: string }[];
+  inboundRules: { include: string; exclude: string }[];
+}
+
+export interface StateData {
+  profiles: Profile[];
 }

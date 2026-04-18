@@ -5,6 +5,12 @@ interface GithubRequestOptions {
   body?: unknown;
 }
 
+export interface RepoSession {
+  owner: string;
+  repo: string;
+  pat: string;
+}
+
 export async function githubFetch(
   path: string,
   pat: string,
@@ -15,19 +21,13 @@ export async function githubFetch(
     'Authorization': `Bearer ${pat}`,
     'Accept': 'application/vnd.github.v3+json',
     'Content-Type': 'application/json',
-    'User-Agent': 'sb-node-ui-worker',
+    'User-Agent': 'sing-sub-worker',
   };
 
   const init: RequestInit = { method, headers };
   if (body) init.body = JSON.stringify(body);
 
   return fetch(`${GITHUB_API}${path}`, init);
-}
-
-interface RepoSession {
-  owner: string;
-  repo: string;
-  pat: string;
 }
 
 export function repoFetch(
@@ -39,10 +39,56 @@ export function repoFetch(
   return githubFetch(path, session.pat, options);
 }
 
-export function gistFetch(gistId: string, pat: string): Promise<Response> {
-  return githubFetch(`/gists/${gistId}`, pat);
-}
-
 export function fetchUser(pat: string): Promise<Response> {
   return githubFetch('/user', pat);
+}
+
+function decodeGithubContent(content: string): string {
+  const cleaned = content.replace(/\n/g, '');
+  const binary = atob(cleaned);
+  const bytes = Uint8Array.from(binary, c => c.charCodeAt(0));
+  return new TextDecoder().decode(bytes);
+}
+
+function encodeToBase64(str: string): string {
+  const bytes = new TextEncoder().encode(str);
+  const binary = String.fromCharCode(...bytes);
+  return btoa(binary);
+}
+
+export async function fetchFileContent(
+  filePath: string,
+  session: RepoSession
+): Promise<{ content: string; sha: string } | null> {
+  const res = await repoFetch(`contents/${filePath}`, session);
+  if (!res.ok) return null;
+  const data = await res.json() as { content: string; sha: string };
+  return { content: decodeGithubContent(data.content), sha: data.sha };
+}
+
+export async function putFileContent(
+  filePath: string,
+  session: RepoSession,
+  content: string,
+  sha: string | null,
+  message: string
+): Promise<{ sha: string }> {
+  const body: Record<string, unknown> = {
+    message,
+    content: encodeToBase64(content),
+  };
+  if (sha) body.sha = sha;
+
+  const res = await repoFetch(`contents/${filePath}`, session, {
+    method: 'PUT',
+    body,
+  });
+
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error(`GitHub PUT failed (${res.status}): ${err}`);
+  }
+
+  const result = await res.json() as { content: { sha: string } };
+  return { sha: result.content.sha };
 }

@@ -1,169 +1,160 @@
-import type { Env, ResolvedSession } from '../types';
-import { getSessionId, resolveSession, createOrUpdateSession, deleteAllUserData } from '../lib/session';
-import { repoFetch, gistFetch, fetchUser } from '../lib/github';
+import type { Env, UserSettings, StateData, Profile } from '../types';
+import { getIdentity, getUserSettings, requireAuth } from '../lib/auth';
+import { fetchUser, fetchFileContent, putFileContent, type RepoSession } from '../lib/github';
+import { buildAllProfiles, buildProfile } from '../lib/builder';
 import { jsonResponse, errorResponse } from '../lib/security';
 
-function decodeGithubContent(content: string): string {
-  const cleaned = content.replace(/\n/g, '');
-  const binary = atob(cleaned);
-  const bytes = Uint8Array.from(binary, c => c.charCodeAt(0));
-  return new TextDecoder().decode(bytes);
+const RULES_PATH = 'sing-sub/rules.json';
+
+export async function handleGetIdentity(request: Request): Promise<Response> {
+  const identity = getIdentity(request);
+  if (!identity) return errorResponse('Not authenticated', 401);
+  return jsonResponse({ email: identity.email });
 }
 
-function encodeToBase64(str: string): string {
-  const bytes = new TextEncoder().encode(str);
-  const binary = String.fromCharCode(...bytes);
-  return btoa(binary);
+export async function handleGetSettings(request: Request, env: Env): Promise<Response> {
+  const identity = getIdentity(request);
+  if (!identity) return errorResponse('Not authenticated', 401);
+
+  const settings = await getUserSettings(identity.email, env);
+  if (!settings) return jsonResponse(null);
+
+  return jsonResponse({
+    owner: settings.owner,
+    repo: settings.repo,
+    subToken: settings.subToken,
+    userLogin: settings.userLogin,
+    userAvatar: settings.userAvatar,
+  });
 }
 
-async function requireSession(request: Request, env: Env): Promise<ResolvedSession | Response> {
-  const sid = getSessionId(request, env.COOKIE_NAME);
-  if (!sid) return errorResponse('Not authenticated', 401);
-  const session = await resolveSession(sid, env);
-  if (!session) return errorResponse('Session expired', 401);
-  return session;
-}
+export async function handlePutSettings(request: Request, env: Env): Promise<Response> {
+  const identity = getIdentity(request);
+  if (!identity) return errorResponse('Not authenticated', 401);
 
-export async function handleConnect(request: Request, env: Env): Promise<Response> {
-  const { owner, repo, pat, gistId } = await request.json() as {
-    owner: string; repo: string; pat: string; gistId?: string;
+  const { owner, repo, pat, subToken } = await request.json() as {
+    owner: string; repo: string; pat: string; subToken: string;
   };
 
-  if (!owner || !repo || !pat) {
+  if (!owner || !repo || !pat || !subToken) {
     return errorResponse('Missing required fields', 400);
   }
 
-  const tempSession = { owner, repo, pat, gistId: gistId || '', userLogin: '', userAvatar: '', createdAt: 0 };
-  const ghRes = await repoFetch('contents/rules.json', tempSession);
-  if (!ghRes.ok) {
-    return errorResponse('GitHub authentication failed', 401);
+  if (!/^[a-zA-Z0-9_-]+$/.test(subToken)) {
+    return errorResponse('subToken can only contain letters, numbers, hyphens and underscores', 400);
   }
-
-  const ghData = await ghRes.json() as { sha: string; content: string };
-  const stateData = JSON.parse(decodeGithubContent(ghData.content));
 
   const userRes = await fetchUser(pat);
-  let userLogin = owner;
-  let userAvatar = '';
-  if (userRes.ok) {
-    const userData = await userRes.json() as { login: string; avatar_url: string };
-    userLogin = userData.login;
-    userAvatar = userData.avatar_url;
+  if (!userRes.ok) return errorResponse('Invalid PAT', 401);
+  const userData = await userRes.json() as { login: string; avatar_url: string };
+
+  const existing = await getUserSettings(identity.email, env);
+  if (!existing || existing.subToken !== subToken) {
+    const taken = await env.SESSIONS.get(`sub:${subToken}`);
+    if (taken) {
+      const takenData = JSON.parse(taken) as { email: string };
+      if (takenData.email !== identity.email) {
+        return errorResponse('subToken already taken', 409);
+      }
+    }
   }
 
-  const existingSid = getSessionId(request, env.COOKIE_NAME);
-  const result = await createOrUpdateSession(env, existingSid, {
-    owner, repo, pat, gistId: gistId || '', userLogin, userAvatar,
-  });
+  if (existing && existing.subToken && existing.subToken !== subToken) {
+    await env.SESSIONS.delete(`sub:${existing.subToken}`);
+  }
 
-  return jsonResponse(
-    {
-      user: { login: userLogin, avatar_url: userAvatar },
-      state: stateData,
-      sha: ghData.sha,
-      gistId: result.gistId,
-    },
-    200,
-    { 'Set-Cookie': result.cookie }
-  );
+  const settings: UserSettings = {
+    pat,
+    owner,
+    repo,
+    subToken,
+    userLogin: userData.login,
+    userAvatar: userData.avatar_url,
+  };
+
+  await env.SESSIONS.put(`user:${identity.email}`, JSON.stringify(settings));
+  await env.SESSIONS.put(`sub:${subToken}`, JSON.stringify({ email: identity.email }));
+
+  return jsonResponse({
+    owner: settings.owner,
+    repo: settings.repo,
+    subToken: settings.subToken,
+    userLogin: settings.userLogin,
+    userAvatar: settings.userAvatar,
+  });
 }
 
-export async function handleDisconnect(request: Request, env: Env): Promise<Response> {
-  const sid = getSessionId(request, env.COOKIE_NAME);
-  if (sid) {
-    const cookie = await deleteAllUserData(sid, env);
-    return jsonResponse({ ok: true }, 200, { 'Set-Cookie': cookie });
+export async function handleDeleteSettings(request: Request, env: Env): Promise<Response> {
+  const identity = getIdentity(request);
+  if (!identity) return errorResponse('Not authenticated', 401);
+
+  const settings = await getUserSettings(identity.email, env);
+  if (settings) {
+    await env.SESSIONS.delete(`sub:${settings.subToken}`);
+    const list = await env.SESSIONS.list({ prefix: `config:${settings.subToken}:` });
+    await Promise.all(list.keys.map(k => env.SESSIONS.delete(k.name)));
   }
+  await env.SESSIONS.delete(`user:${identity.email}`);
+
   return jsonResponse({ ok: true });
 }
 
 export async function handleGetState(request: Request, env: Env): Promise<Response> {
-  const session = await requireSession(request, env);
-  if (session instanceof Response) return session;
+  const auth = await requireAuth(request, env);
+  if (auth instanceof Response) return auth;
 
-  const ghRes = await repoFetch('contents/rules.json', session);
-  if (!ghRes.ok) return errorResponse('Failed to fetch state', ghRes.status);
+  const session: RepoSession = {
+    owner: auth.settings.owner,
+    repo: auth.settings.repo,
+    pat: auth.settings.pat,
+  };
 
-  const ghData = await ghRes.json() as { sha: string; content: string };
-  const stateData = JSON.parse(decodeGithubContent(ghData.content));
+  const file = await fetchFileContent(RULES_PATH, session);
+  if (!file) {
+    return jsonResponse({ state: { profiles: [] }, sha: null });
+  }
 
-  return jsonResponse({
-    state: stateData,
-    sha: ghData.sha,
-    user: { login: session.userLogin, avatar_url: session.userAvatar },
-    owner: session.owner,
-    repo: session.repo,
-    gistId: session.gistId,
-  });
+  const state = JSON.parse(file.content) as StateData;
+  return jsonResponse({ state, sha: file.sha });
 }
 
 export async function handlePutState(request: Request, env: Env): Promise<Response> {
-  const session = await requireSession(request, env);
-  if (session instanceof Response) return session;
+  const auth = await requireAuth(request, env);
+  if (auth instanceof Response) return auth;
 
-  const { state, sha } = await request.json() as { state: unknown; sha: string };
-  const encoded = encodeToBase64(JSON.stringify(state, null, 2));
+  const { state, sha } = await request.json() as { state: StateData; sha: string | null };
 
-  const ghRes = await repoFetch('contents/rules.json', session, {
-    method: 'PUT',
-    body: { message: 'Deploy: update via WebUI', content: encoded, sha },
-  });
+  const session: RepoSession = {
+    owner: auth.settings.owner,
+    repo: auth.settings.repo,
+    pat: auth.settings.pat,
+  };
 
-  if (!ghRes.ok) {
-    const err = await ghRes.text();
-    return errorResponse(`Save failed: ${err}`, ghRes.status);
-  }
+  const content = JSON.stringify(state, null, 2);
+  const result = await putFileContent(RULES_PATH, session, content, sha, 'Update rules via Sing-Sub');
 
-  const result = await ghRes.json() as { content: { sha: string } };
-  return jsonResponse({ sha: result.content.sha });
+  await buildAllProfiles(state.profiles, session, auth.settings.subToken, env);
+
+  return jsonResponse({ sha: result.sha });
 }
 
-export async function handleRefresh(request: Request, env: Env): Promise<Response> {
-  const session = await requireSession(request, env);
-  if (session instanceof Response) return session;
+export async function handlePreview(request: Request, env: Env, name: string): Promise<Response> {
+  const auth = await requireAuth(request, env);
+  if (auth instanceof Response) return auth;
 
-  const repoRes = await repoFetch('', session);
-  if (!repoRes.ok) return errorResponse('Failed to fetch repo info', repoRes.status);
-  const repoInfo = await repoRes.json() as { default_branch: string };
+  const session: RepoSession = {
+    owner: auth.settings.owner,
+    repo: auth.settings.repo,
+    pat: auth.settings.pat,
+  };
 
-  const dispatchRes = await repoFetch('actions/workflows/build.yml/dispatches', session, {
-    method: 'POST',
-    body: { ref: repoInfo.default_branch || 'main' },
-  });
+  const file = await fetchFileContent(RULES_PATH, session);
+  if (!file) return errorResponse('No rules found', 404);
 
-  if (!dispatchRes.ok && dispatchRes.status !== 204) {
-    return errorResponse('Failed to trigger refresh', dispatchRes.status);
-  }
+  const state = JSON.parse(file.content) as StateData;
+  const profile = state.profiles.find((p: Profile) => p.name === name);
+  if (!profile) return errorResponse('Profile not found', 404);
 
-  return jsonResponse({ ok: true });
-}
-
-export async function handleGetRuns(request: Request, env: Env): Promise<Response> {
-  const session = await requireSession(request, env);
-  if (session instanceof Response) return session;
-
-  const url = new URL(request.url);
-  const perPage = url.searchParams.get('per_page') || '5';
-
-  const ghRes = await repoFetch(`actions/runs?per_page=${perPage}`, session);
-  if (!ghRes.ok) return errorResponse('Failed to fetch runs', ghRes.status);
-
-  const data = await ghRes.json();
-  return jsonResponse(data);
-}
-
-export async function handleGetGist(request: Request, env: Env, name: string): Promise<Response> {
-  const session = await requireSession(request, env);
-  if (session instanceof Response) return session;
-
-  if (!session.gistId) return errorResponse('No Gist ID configured', 400);
-
-  const ghRes = await gistFetch(session.gistId, session.pat);
-  if (!ghRes.ok) return errorResponse('Failed to fetch Gist', ghRes.status);
-
-  const data = await ghRes.json() as { files: Record<string, { content: string }> };
-  const file = data.files[`${name}.json`];
-
-  if (!file) return errorResponse('File not found in Gist', 404);
-  return jsonResponse({ content: file.content });
+  const config = await buildProfile(profile, session);
+  return jsonResponse({ content: config });
 }

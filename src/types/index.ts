@@ -1,8 +1,16 @@
-export interface GithubConfig {
+export interface UserSettings {
+  owner: string;
+  repo: string;
+  subToken: string;
+  userLogin: string;
+  userAvatar: string;
+}
+
+export interface SetupData {
   owner: string;
   repo: string;
   pat: string;
-  gistId: string;
+  subToken: string;
 }
 
 export interface Rule {

@@ -6,13 +6,11 @@
       :hasUpdate="hasUpdate"
       :latestVersion="latestVersion"
       :updateUrl="updateUrl"
-      :actionBusy="actionState === 'queued' || actionState === 'in_progress'"
-      :config="config"
+      :settings="settings"
       :loading="loadingData"
-      @refresh="handleRefresh"
-      @save="handleConnect"
+      @save="handleSaveSettings"
       @disconnect="handleDisconnect"
-      @update:config="Object.assign(config, $event)"
+      @update:settings="handleUpdateSettings"
     />
 
     <div v-if="isInitializing" class="flex justify-center items-center py-32 text-[#86868b]">
@@ -20,11 +18,11 @@
     </div>
 
     <ConnectForm
-      v-else-if="!isConnected"
-      :config="config"
+      v-else-if="!settings"
+      :setupData="setupData"
       :loading="loadingData"
-      @update:config="Object.assign(config, $event)"
-      @connect="handleConnect"
+      @update:setupData="Object.assign(setupData, $event)"
+      @save="handleSetup"
     />
 
     <div v-else-if="stateData" class="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
@@ -59,12 +57,10 @@
       @close="showPreviewModal = false"
     />
 
-    <ActionStatus :state="actionState" :actionsUrl="actionsUrl" />
-
     <ConfirmModal
       :visible="showDisconnectConfirm"
       title="确认断开连接"
-      message="此操作将清除服务器上保存的所有登录信息（包括其他设备的会话），相当于注销账号。下次登录需要重新输入所有凭据。"
+      message="此操作将清除服务器上保存的所有设置和缓存配置。下次需要重新配置仓库信息。"
       confirmText="确认断开"
       @confirm="confirmDisconnect"
       @cancel="showDisconnectConfirm = false"
@@ -73,27 +69,25 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted } from 'vue';
+import { ref, reactive, onMounted } from 'vue';
 import AppHeader from './components/AppHeader.vue';
 import ConnectForm from './components/ConnectForm.vue';
 import ProfileEditor from './components/ProfileEditor.vue';
 import PreviewModal from './components/PreviewModal.vue';
-import ActionStatus from './components/ActionStatus.vue';
 import ConfirmModal from './components/ConfirmModal.vue';
 import AppleButton from './components/AppleButton.vue';
 import { Plus, Upload } from 'lucide-vue-next';
 import { useApi } from './composables/useApi';
-import { useActionPolling } from './composables/useActionPolling';
-import type { GithubConfig, StateData, Profile } from './types';
+import type { SetupData, UserSettings, StateData, Profile } from './types';
 
-const APP_VERSION = 'v1.0.3';
+const APP_VERSION = 'v2.0.0';
 const hasUpdate = ref(false);
 const latestVersion = ref('');
 const updateUrl = ref('');
 
-const config = reactive<GithubConfig>({ owner: '', repo: '', pat: '', gistId: '' });
+const setupData = reactive<SetupData>({ owner: '', repo: '', pat: '', subToken: '' });
 const stateData = ref<StateData | null>(null);
-const fileSha = ref('');
+const fileSha = ref<string | null>(null);
 const loadingData = ref(false);
 const savingData = ref(false);
 const isInitializing = ref(true);
@@ -105,12 +99,7 @@ const previewTitle = ref('');
 const previewContent = ref('');
 const previewLoading = ref(false);
 
-const { user, isConnected, connect, disconnect, restoreSession, saveState, refresh, getRuns, getGistPreview } = useApi();
-const { actionState, startPolling, getLatestRunId } = useActionPolling(getRuns);
-
-const actionsUrl = computed(() =>
-  isConnected.value ? `https://github.com/${config.owner}/${config.repo}/actions` : ''
-);
+const { user, settings, getIdentity, getSettings, saveSettings, deleteSettings, getState, saveState, getPreview } = useApi();
 
 function normalizeProfiles(state: StateData): StateData {
   state.profiles.forEach((p: Profile) => {
@@ -122,18 +111,21 @@ function normalizeProfiles(state: StateData): StateData {
 }
 
 onMounted(async () => {
-  const session = await restoreSession();
-  if (session) {
-    stateData.value = normalizeProfiles(session.state);
-    fileSha.value = session.sha;
-    config.owner = session.owner;
-    config.repo = session.repo;
-    config.gistId = session.gistId;
+  const identity = await getIdentity();
+  if (identity) {
+    try {
+      const s = await getSettings();
+      if (s) {
+        const data = await getState();
+        stateData.value = normalizeProfiles(data.state);
+        fileSha.value = data.sha;
+      }
+    } catch { /* settings not configured yet */ }
   }
   isInitializing.value = false;
 
   try {
-    const res = await fetch('https://api.github.com/repos/Leovikii/sb-node-ui/releases/latest');
+    const res = await fetch('https://api.github.com/repos/Leovikii/Sing-Sub/releases/latest');
     if (res.ok) {
       const data = await res.json();
       if (data.tag_name && data.tag_name !== APP_VERSION) {
@@ -145,61 +137,63 @@ onMounted(async () => {
   } catch { /* ignore */ }
 });
 
+async function handleSetup() {
+  if (!setupData.owner || !setupData.repo || !setupData.pat || !setupData.subToken) return;
+  loadingData.value = true;
+  try {
+    await saveSettings(setupData);
+    const data = await getState();
+    stateData.value = normalizeProfiles(data.state);
+    fileSha.value = data.sha;
+    setupData.pat = '';
+  } catch (e: any) {
+    alert('设置失败: ' + e.message);
+  } finally {
+    loadingData.value = false;
+  }
+}
+
+async function handleSaveSettings(newSettings: SetupData) {
+  loadingData.value = true;
+  try {
+    await saveSettings(newSettings);
+    const data = await getState();
+    stateData.value = normalizeProfiles(data.state);
+    fileSha.value = data.sha;
+  } catch (e: any) {
+    alert('更新设置失败: ' + e.message);
+  } finally {
+    loadingData.value = false;
+  }
+}
+
+function handleUpdateSettings(partial: Partial<UserSettings>) {
+  if (settings.value) {
+    Object.assign(settings.value, partial);
+  }
+}
+
 function handleDisconnect() {
   showDisconnectConfirm.value = true;
 }
 
 async function confirmDisconnect() {
   showDisconnectConfirm.value = false;
-  await disconnect();
+  await deleteSettings();
   stateData.value = null;
-  fileSha.value = '';
-}
-
-async function handleConnect() {
-  if (!config.owner || !config.repo || !config.pat) return;
-  loadingData.value = true;
-  try {
-    const data = await connect(config);
-    stateData.value = normalizeProfiles(data.state);
-    fileSha.value = data.sha;
-    config.gistId = data.gistId;
-    config.pat = '';
-  } catch {
-    alert('连接失败，请检查仓库信息和 PAT 权限');
-  } finally {
-    loadingData.value = false;
-  }
+  fileSha.value = null;
 }
 
 async function handleSave() {
   if (!stateData.value) return;
   savingData.value = true;
-  const prevRunId = await getLatestRunId();
-  const oldSha = fileSha.value;
   try {
     const data = await saveState(stateData.value, fileSha.value);
     fileSha.value = data.sha;
-    if (data.sha === oldSha) {
-      alert('检测到配置未发生任何更改，未产生新提交。若需强制构建请点击【全局强制刷新】。');
-      savingData.value = false;
-      return;
-    }
-    startPolling(prevRunId);
   } catch (e: any) {
     alert('保存失败: ' + e.message);
   } finally {
     savingData.value = false;
-  }
-}
-
-async function handleRefresh() {
-  const prevRunId = await getLatestRunId();
-  try {
-    await refresh();
-    startPolling(prevRunId);
-  } catch (e: any) {
-    alert('刷新指令发送失败: ' + e.message);
   }
 }
 
@@ -209,16 +203,18 @@ async function handlePreview(name: string) {
   showPreviewModal.value = true;
   previewLoading.value = true;
   try {
-    previewContent.value = await getGistPreview(name);
+    previewContent.value = await getPreview(name);
   } catch {
-    previewContent.value = '读取 Gist 失败，请检查 Gist ID 或网络。';
+    previewContent.value = '构建预览失败，请检查配置。';
   } finally {
     previewLoading.value = false;
   }
 }
 
 async function handleCopyLink(name: string, index: number) {
-  const url = `${window.location.origin}/sub/${config.gistId}/${name}.json`;
+  const token = settings.value?.subToken;
+  if (!token) return;
+  const url = `${window.location.origin}/sub/${token}/${name}.json`;
   try {
     await navigator.clipboard.writeText(url);
     copyStatus.value[index] = true;

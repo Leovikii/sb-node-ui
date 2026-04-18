@@ -11,14 +11,17 @@
       <div class="inline-flex items-center gap-2.5 px-4 py-2.5 rounded-full glass !rounded-full !shadow-lg">
         <span class="relative flex h-2.5 w-2.5">
           <span
-            v-if="status === 'saving'"
-            class="absolute inline-flex h-full w-full rounded-full bg-[#F596AA] opacity-75 animate-ping"
+            v-if="status === 'saving' || status === 'refreshing'"
+            class="absolute inline-flex h-full w-full rounded-full opacity-75 animate-ping"
+            :class="status === 'saving' ? 'bg-[#F596AA]' : 'bg-blue-400'"
           />
           <span
             class="relative inline-flex rounded-full h-2.5 w-2.5"
             :class="{
               'bg-[#F596AA]': status === 'saving',
+              'bg-blue-400': status === 'refreshing',
               'bg-emerald-400': status === 'success',
+              'bg-amber-400': status === 'warning',
               'bg-red-400': status === 'error',
             }"
           />
@@ -33,15 +36,17 @@
 import { computed } from 'vue';
 
 const props = defineProps<{
-  status: 'idle' | 'saving' | 'success' | 'error';
+  status: 'idle' | 'saving' | 'refreshing' | 'success' | 'warning' | 'error';
   message?: string;
 }>();
 
 const displayMessage = computed(() => {
   switch (props.status) {
     case 'saving': return '正在保存...';
-    case 'success': return '保存成功，配置已更新';
-    case 'error': return props.message || '保存失败';
+    case 'refreshing': return '正在刷新...';
+    case 'success': return props.message || '操作成功';
+    case 'warning': return props.message || '操作完成，但有警告';
+    case 'error': return props.message || '操作失败';
     default: return '';
   }
 });

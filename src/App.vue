@@ -1,5 +1,5 @@
 <template>
-  <div class="max-w-5xl mx-auto space-y-10 p-6 md:p-12 pb-32">
+  <div class="max-w-7xl mx-auto space-y-10 p-6 md:p-12 pb-32">
     <AppHeader
       :user="user"
       :appVersion="APP_VERSION"
@@ -27,19 +27,21 @@
       @connect="handleConnect"
     />
 
-    <div v-else-if="stateData" class="space-y-8">
+    <div v-else-if="stateData" class="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
       <ProfileEditor
         v-for="(profile, pIndex) in stateData.profiles"
         :key="pIndex"
         :profile="profile"
         :index="pIndex"
         :copyStatus="!!copyStatus[pIndex]"
+        :expanded="expandedIndex === pIndex"
+        @update:expanded="toggleExpand(pIndex)"
         @preview="handlePreview"
         @copyLink="handleCopyLink"
         @remove="removeProfile"
       />
 
-      <div class="flex gap-4 pt-4">
+      <div class="lg:col-span-2 flex gap-4 pt-4">
         <AppleButton @click="addProfile" variant="secondary" class="flex-1 py-4 text-base border border-[#38383a]">
           + 新增环境配置
         </AppleButton>
@@ -83,7 +85,7 @@ import { useApi } from './composables/useApi';
 import { useActionPolling } from './composables/useActionPolling';
 import type { GithubConfig, StateData, Profile } from './types';
 
-const APP_VERSION = 'v1.0.2';
+const APP_VERSION = 'v1.0.3';
 const hasUpdate = ref(false);
 const latestVersion = ref('');
 const updateUrl = ref('');
@@ -97,6 +99,7 @@ const isInitializing = ref(true);
 const copyStatus = ref<Record<number, boolean>>({});
 const showPreviewModal = ref(false);
 const showDisconnectConfirm = ref(false);
+const expandedIndex = ref<number | null>(null);
 const previewTitle = ref('');
 const previewContent = ref('');
 const previewLoading = ref(false);
@@ -112,6 +115,7 @@ function normalizeProfiles(state: StateData): StateData {
   state.profiles.forEach((p: Profile) => {
     if (!p.rules) p.rules = [];
     if (!p.inboundRules) p.inboundRules = [];
+    if (!p.note) p.note = '';
   });
   return state;
 }
@@ -226,13 +230,20 @@ async function handleCopyLink(name: string, index: number) {
 function addProfile() {
   if (!stateData.value) return;
   stateData.value.profiles.push({
-    name: 'new_env', templateUrl: '', inboundsPath: '', outboundsPath: '',
+    name: 'new_env', note: '', templateUrl: '', inboundsPath: '', outboundsPath: '',
     rules: [], inboundRules: [],
   });
+  expandedIndex.value = stateData.value.profiles.length - 1;
 }
 
 function removeProfile(index: number) {
   if (!stateData.value) return;
+  if (expandedIndex.value === index) expandedIndex.value = null;
+  else if (expandedIndex.value !== null && expandedIndex.value > index) expandedIndex.value--;
   stateData.value.profiles.splice(index, 1);
+}
+
+function toggleExpand(index: number) {
+  expandedIndex.value = expandedIndex.value === index ? null : index;
 }
 </script>

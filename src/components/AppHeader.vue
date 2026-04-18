@@ -12,9 +12,9 @@
     </div>
 
     <div v-if="user" class="flex items-center gap-6">
-      <button @click="$emit('refresh')" :disabled="actionBusy" class="hidden md:flex items-center gap-2 text-sm font-medium text-[#86868b] hover:text-[#F596AA] transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">
-        <span :class="{'animate-spin': actionBusy}">🔄</span>
-        全局强制刷新
+      <button @click="$emit('refresh')" :disabled="actionBusy" class="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs md:text-sm font-medium text-[#86868b] hover:text-[#f5f5f7] bg-[#2c2c2e] border border-[#38383a] hover:border-[#86868b] transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">
+        <RefreshCw :size="14" :class="{'animate-spin': actionBusy}" />
+        <span class="hidden md:inline">全局强制刷新</span>
       </button>
 
       <div class="relative">
@@ -43,6 +43,7 @@
 
 <script setup lang="ts">
 import { ref } from 'vue';
+import { RefreshCw } from 'lucide-vue-next';
 import UserDropdown from './UserDropdown.vue';
 import type { GithubUser, GithubConfig } from '../types';
 

@@ -22,7 +22,7 @@ export function useApi() {
     return res.json();
   }
 
-  async function login(data: SetupData): Promise<UserSettings> {
+  async function login(data: SetupData): Promise<UserSettings & { warning?: string }> {
     const result = await apiCall('/api/login', {
       method: 'POST',
       body: JSON.stringify(data),

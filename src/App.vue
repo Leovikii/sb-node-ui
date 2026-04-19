@@ -126,13 +126,18 @@ async function handleSetup() {
   if (!setupData.owner || !setupData.repo || !setupData.pat) return;
   loadingData.value = true;
   try {
-    await login(setupData);
+    const result = await login(setupData);
     const data = await getState();
     stateData.value = normalizeProfiles(data.state);
     fileSha.value = data.sha;
     setupData.pat = '';
+    if (result.warning) {
+      saveStatus.value = 'warning';
+      statusMessage.value = '登录成功，但配置构建失败: ' + result.warning;
+      setTimeout(() => { saveStatus.value = 'idle'; }, 5000);
+    }
   } catch (e: any) {
-    alert('设置失败: ' + e.message);
+    alert('登录失败: ' + e.message);
   } finally {
     loadingData.value = false;
   }

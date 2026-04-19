@@ -1,16 +1,14 @@
 import type { Env, UserSettings, SessionData } from '../types';
 import { errorResponse } from './security';
+import { generateHex } from './helpers';
 
-function generateSessionId(): string {
-  const bytes = new Uint8Array(32);
-  crypto.getRandomValues(bytes);
-  return Array.from(bytes, b => b.toString(16).padStart(2, '0')).join('');
-}
+const HEX_64 = /^[0-9a-f]{64}$/;
 
 function parseSessionCookie(request: Request): string | null {
   const cookie = request.headers.get('Cookie') || '';
   const match = cookie.match(/(?:^|;\s*)session=([^;]+)/);
-  return match ? match[1] : null;
+  if (!match) return null;
+  return HEX_64.test(match[1]) ? match[1] : null;
 }
 
 export function sessionCookieHeader(sessionId: string, maxAge = 86400 * 30): string {
@@ -42,7 +40,7 @@ export async function getSessionData(request: Request, env: Env): Promise<Sessio
 }
 
 export async function createSession(owner: string, repo: string, env: Env): Promise<string> {
-  const sessionId = generateSessionId();
+  const sessionId = generateHex(32);
   const data: SessionData = { owner, repo };
   await env.SESSIONS.put(`session:${sessionId}`, JSON.stringify(data), { expirationTtl: 86400 * 30 });
   return sessionId;

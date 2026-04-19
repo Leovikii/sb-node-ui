@@ -143,13 +143,22 @@ async function handleSetup() {
   }
 }
 
-async function handleSaveSettings(newSettings: SetupData) {
+async function handleSaveSettings(newSettings: { owner: string; repo: string; pat: string; subToken: string }) {
   loadingData.value = true;
   try {
-    await saveSettings(newSettings);
+    const result = await saveSettings(newSettings);
     const data = await getState();
     stateData.value = normalizeProfiles(data.state);
     fileSha.value = data.sha;
+    if (result.warning) {
+      saveStatus.value = 'warning';
+      statusMessage.value = '设置已保存，但配置构建失败: ' + result.warning;
+      setTimeout(() => { saveStatus.value = 'idle'; }, 5000);
+    } else {
+      saveStatus.value = 'success';
+      statusMessage.value = '设置已保存，配置已更新';
+      setTimeout(() => { saveStatus.value = 'idle'; }, 3000);
+    }
   } catch (e: any) {
     alert('更新设置失败: ' + e.message);
   } finally {

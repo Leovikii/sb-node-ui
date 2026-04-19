@@ -1,20 +1,15 @@
-import type { Env, UserSettings, StateData, Profile } from '../types';
+import type { Env, UserSettings, StateData } from '../types';
 import {
   getSessionData, getUserSettings, putUserSettings,
   createSession, deleteSession, requireAuth,
   sessionCookieHeader, clearSessionCookieHeader,
 } from '../lib/auth';
 import { fetchUser, fetchFileContent, putFileContent, type RepoSession } from '../lib/github';
-import { buildAllProfiles, buildProfile } from '../lib/builder';
+import { buildAllProfiles } from '../lib/builder';
 import { jsonResponse, errorResponse } from '../lib/security';
+import { generateHex, toRepoSession, rebuildWithWarning, cleanupSubToken } from '../lib/helpers';
 
 const RULES_PATH = 'sing-sub/rules.json';
-
-function generateSubToken(): string {
-  const bytes = new Uint8Array(16);
-  crypto.getRandomValues(bytes);
-  return Array.from(bytes, b => b.toString(16).padStart(2, '0')).join('');
-}
 
 export async function handleLogin(request: Request, env: Env): Promise<Response> {
   const { owner, repo, pat } = await request.json() as {
@@ -31,7 +26,7 @@ export async function handleLogin(request: Request, env: Env): Promise<Response>
 
   const existing = await getUserSettings(owner, repo, env);
 
-  const subToken = existing?.subToken || generateSubToken();
+  const subToken = existing?.subToken || generateHex(16);
 
   const settings: UserSettings = {
     pat,
@@ -48,17 +43,7 @@ export async function handleLogin(request: Request, env: Env): Promise<Response>
     await env.SESSIONS.put(`sub:${subToken}`, JSON.stringify({ owner, repo }));
   }
 
-  const session: RepoSession = { owner, repo, pat };
-  let warning: string | undefined;
-  try {
-    const file = await fetchFileContent(RULES_PATH, session);
-    if (file) {
-      const state = JSON.parse(file.content) as StateData;
-      await buildAllProfiles(state.profiles, session, subToken, env);
-    }
-  } catch (e) {
-    warning = e instanceof Error ? e.message : 'Build failed';
-  }
+  const { warning } = await rebuildWithWarning({ owner, repo, pat }, subToken, env);
 
   const sessionId = await createSession(owner, repo, env);
 
@@ -120,7 +105,7 @@ export async function handlePutSettings(request: Request, env: Env): Promise<Res
         return errorResponse('subToken already taken', 409);
       }
     }
-    await env.SESSIONS.delete(`sub:${auth.settings.subToken}`);
+    await cleanupSubToken(auth.settings.subToken, env);
   }
 
   const isRepoChange = owner !== auth.session.owner || repo !== auth.session.repo;
@@ -149,21 +134,21 @@ export async function handlePutSettings(request: Request, env: Env): Promise<Res
     cookieHeader = sessionCookieHeader(newSessionId);
   }
 
-  const resp = jsonResponse(
-    { owner, repo, subToken, userLogin: settings.userLogin, userAvatar: settings.userAvatar },
+  const session: RepoSession = { owner, repo, pat: effectivePat };
+  const { warning } = await rebuildWithWarning(session, subToken, env);
+
+  return jsonResponse(
+    { owner, repo, subToken, userLogin: settings.userLogin, userAvatar: settings.userAvatar, warning },
     200,
     cookieHeader ? { 'Set-Cookie': cookieHeader } : undefined,
   );
-  return resp;
 }
 
 export async function handleDeleteSettings(request: Request, env: Env): Promise<Response> {
   const auth = await requireAuth(request, env);
   if (auth instanceof Response) return auth;
 
-  await env.SESSIONS.delete(`sub:${auth.settings.subToken}`);
-  const list = await env.SESSIONS.list({ prefix: `config:${auth.settings.subToken}:` });
-  await Promise.all(list.keys.map(k => env.SESSIONS.delete(k.name)));
+  await cleanupSubToken(auth.settings.subToken, env);
   await env.SESSIONS.delete(`user:${auth.session.owner}/${auth.session.repo}`);
   await deleteSession(request, env);
 
@@ -174,11 +159,7 @@ export async function handleGetState(request: Request, env: Env): Promise<Respon
   const auth = await requireAuth(request, env);
   if (auth instanceof Response) return auth;
 
-  const session: RepoSession = {
-    owner: auth.settings.owner,
-    repo: auth.settings.repo,
-    pat: auth.settings.pat,
-  };
+  const session = toRepoSession(auth.settings);
 
   const file = await fetchFileContent(RULES_PATH, session);
   if (!file) {
@@ -193,11 +174,7 @@ export async function handleRebuild(request: Request, env: Env): Promise<Respons
   const auth = await requireAuth(request, env);
   if (auth instanceof Response) return auth;
 
-  const session: RepoSession = {
-    owner: auth.settings.owner,
-    repo: auth.settings.repo,
-    pat: auth.settings.pat,
-  };
+  const session = toRepoSession(auth.settings);
 
   const file = await fetchFileContent(RULES_PATH, session);
   if (!file) return errorResponse('No rules found', 404);
@@ -220,21 +197,13 @@ export async function handlePutState(request: Request, env: Env): Promise<Respon
 
   const { state, sha } = await request.json() as { state: StateData; sha: string | null };
 
-  const session: RepoSession = {
-    owner: auth.settings.owner,
-    repo: auth.settings.repo,
-    pat: auth.settings.pat,
-  };
+  const session = toRepoSession(auth.settings);
 
   const content = JSON.stringify(state, null, 2);
   const result = await putFileContent(RULES_PATH, session, content, sha, 'Update rules via Sing-Sub');
 
-  try {
-    await buildAllProfiles(state.profiles, session, auth.settings.subToken, env);
-  } catch (e) {
-    const msg = e instanceof Error ? e.message : 'Build failed';
-    return jsonResponse({ sha: result.sha, warning: msg });
-  }
+  const { warning } = await rebuildWithWarning(session, auth.settings.subToken, env);
+  if (warning) return jsonResponse({ sha: result.sha, warning });
 
   return jsonResponse({ sha: result.sha });
 }
@@ -242,6 +211,10 @@ export async function handlePutState(request: Request, env: Env): Promise<Respon
 export async function handlePreview(request: Request, env: Env, name: string): Promise<Response> {
   const auth = await requireAuth(request, env);
   if (auth instanceof Response) return auth;
+
+  if (!/^[a-zA-Z0-9_-]+$/.test(name)) {
+    return errorResponse('Invalid profile name', 400);
+  }
 
   const cached = await env.SESSIONS.get(`config:${auth.settings.subToken}:${name}`);
   if (!cached) return errorResponse('该配置尚未构建，请先保存或刷新', 404);

@@ -4,7 +4,10 @@
       <div class="flex items-center justify-between p-4 border-b border-[#38383a] bg-[#1c1c1e]">
         <div class="flex items-center gap-3">
           <span class="text-[#F596AA] font-mono text-sm">{{ title }}.json</span>
-          <span v-if="loading" class="text-xs text-[#86868b] animate-pulse">获取最新云端配置中...</span>
+          <span v-if="loading" class="flex items-center gap-1.5 text-xs text-[#86868b]">
+            <Loader2 :size="12" class="animate-spin text-[#F596AA]" />
+            加载中...
+          </span>
         </div>
         <button @click="$emit('close')" class="text-[#86868b] hover:text-[#f5f5f7] transition-colors cursor-pointer">✕ 关闭</button>
       </div>
@@ -16,6 +19,8 @@
 </template>
 
 <script setup lang="ts">
+import { Loader2 } from 'lucide-vue-next';
+
 defineProps<{
   visible: boolean;
   title: string;

@@ -8,12 +8,14 @@
     :disabled="loading"
     :type="type"
   >
-    <span v-if="loading" class="mr-2 animate-spin">⚪</span>
+    <Loader2 v-if="loading" :size="16" class="mr-2 animate-spin" :class="variant === 'primary' ? 'text-[#121212]' : 'text-[#F596AA]'" />
     <slot></slot>
   </button>
 </template>
 
 <script setup lang="ts">
+import { Loader2 } from 'lucide-vue-next';
+
 withDefaults(defineProps<{
   variant?: 'primary' | 'secondary';
   loading?: boolean;

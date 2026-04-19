@@ -47,7 +47,7 @@ export function useApi() {
     return data;
   }
 
-  async function saveSettings(data: SetupData): Promise<UserSettings> {
+  async function saveSettings(data: SetupData & { subToken: string }): Promise<UserSettings & { warning?: string }> {
     const result = await apiCall('/api/settings', {
       method: 'PUT',
       body: JSON.stringify(data),

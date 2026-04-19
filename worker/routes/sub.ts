@@ -1,11 +1,13 @@
 import type { Env, StateData, Profile } from '../types';
 import { getUserSettings } from '../lib/auth';
 import { buildProfile } from '../lib/builder';
-import { fetchFileContent, type RepoSession } from '../lib/github';
+import { fetchFileContent } from '../lib/github';
 import { errorResponse } from '../lib/security';
+import { toRepoSession, subscriptionResponse } from '../lib/helpers';
 
 const ALLOWED_UA_PATTERNS = ['sing-box', 'SFI', 'SFA', 'SFM', 'SFT'];
 const RULES_PATH = 'sing-sub/rules.json';
+const SAFE_TOKEN = /^[a-zA-Z0-9_-]+$/;
 
 export async function handleSubscription(
   request: Request,
@@ -18,6 +20,10 @@ export async function handleSubscription(
     return errorResponse('Forbidden', 403);
   }
 
+  if (!SAFE_TOKEN.test(token) || !SAFE_TOKEN.test(name)) {
+    return errorResponse('Invalid subscription link', 400);
+  }
+
   const raw = await env.SESSIONS.get(`sub:${token}`);
   if (!raw) return errorResponse('Invalid subscription link', 404);
 
@@ -27,16 +33,10 @@ export async function handleSubscription(
 
   const cached = await env.SESSIONS.get(`config:${token}:${name}`);
   if (cached) {
-    return new Response(cached, {
-      headers: {
-        'Content-Type': 'application/json; charset=utf-8',
-        'Cache-Control': 'no-cache',
-        'Profile-Update-Interval': '3600',
-      },
-    });
+    return subscriptionResponse(cached);
   }
 
-  const session: RepoSession = { owner: settings.owner, repo: settings.repo, pat: settings.pat };
+  const session = toRepoSession(settings);
   const file = await fetchFileContent(RULES_PATH, session);
   if (!file) return errorResponse('Rules not found', 404);
 
@@ -47,11 +47,5 @@ export async function handleSubscription(
   const config = await buildProfile(profile, session);
   await env.SESSIONS.put(`config:${token}:${name}`, config);
 
-  return new Response(config, {
-    headers: {
-      'Content-Type': 'application/json; charset=utf-8',
-      'Cache-Control': 'no-cache',
-      'Profile-Update-Interval': '3600',
-    },
-  });
+  return subscriptionResponse(config);
 }

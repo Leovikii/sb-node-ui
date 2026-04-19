@@ -114,7 +114,6 @@ function handleSave() {
   background: rgba(44, 44, 46, 0.6);
   border: 1px solid rgba(255, 255, 255, 0.06);
   cursor: pointer;
-  will-change: transform;
   transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
 }
 
@@ -133,7 +132,7 @@ function handleSave() {
 }
 
 .fab-icon {
-  will-change: transform;
+  transition: color 0.2s ease;
 }
 
 .fab-spin {

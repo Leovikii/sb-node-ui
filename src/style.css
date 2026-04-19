@@ -38,16 +38,18 @@ body {
   transition-delay: 100ms;
 }
 
-.glass:has(.expand-grid:not(.is-open)) .expand-grid,
-.glass:has(.expand-grid.is-open) .expand-grid {
-  will-change: grid-template-rows;
-}
-
 .glass:has(.expand-grid) {
   transition: backdrop-filter 0ms;
 }
 
-.glass:has(.expand-grid:not(.is-open)) > .expand-grid,
-.glass:has(.expand-grid.is-open) > .expand-grid {
+.glass:has(.expand-grid) > .expand-grid {
   contain: layout;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

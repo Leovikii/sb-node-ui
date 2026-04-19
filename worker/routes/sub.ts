@@ -21,8 +21,8 @@ export async function handleSubscription(
   const raw = await env.SESSIONS.get(`sub:${token}`);
   if (!raw) return errorResponse('Invalid subscription link', 404);
 
-  const { email } = JSON.parse(raw) as { email: string };
-  const settings = await getUserSettings(email, env);
+  const { owner, repo } = JSON.parse(raw) as { owner: string; repo: string };
+  const settings = await getUserSettings(owner, repo, env);
   if (!settings) return errorResponse('User not configured', 404);
 
   const cached = await env.SESSIONS.get(`config:${token}:${name}`);

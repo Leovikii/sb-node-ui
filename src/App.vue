@@ -98,7 +98,7 @@ const previewTitle = ref('');
 const previewContent = ref('');
 const previewLoading = ref(false);
 
-const { user, settings, getIdentity, getSettings, saveSettings, deleteSettings, getState, saveState, getPreview } = useApi();
+const { user, settings, login, getSettings, saveSettings, deleteSettings, getState, saveState, getPreview } = useApi();
 
 function normalizeProfiles(state: StateData): StateData {
   state.profiles.forEach((p: Profile) => {
@@ -110,17 +110,14 @@ function normalizeProfiles(state: StateData): StateData {
 }
 
 onMounted(async () => {
-  const identity = await getIdentity();
-  if (identity) {
-    try {
-      const s = await getSettings();
-      if (s) {
-        const data = await getState();
-        stateData.value = normalizeProfiles(data.state);
-        fileSha.value = data.sha;
-      }
-    } catch { /* settings not configured yet */ }
-  }
+  try {
+    const s = await getSettings();
+    if (s) {
+      const data = await getState();
+      stateData.value = normalizeProfiles(data.state);
+      fileSha.value = data.sha;
+    }
+  } catch { /* not logged in */ }
   isInitializing.value = false;
 });
 
@@ -128,7 +125,7 @@ async function handleSetup() {
   if (!setupData.owner || !setupData.repo || !setupData.pat || !setupData.subToken) return;
   loadingData.value = true;
   try {
-    await saveSettings(setupData);
+    await login(setupData);
     const data = await getState();
     stateData.value = normalizeProfiles(data.state);
     fileSha.value = data.sha;

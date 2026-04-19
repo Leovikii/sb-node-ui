@@ -22,12 +22,20 @@ export function useApi() {
     return res.json();
   }
 
-  async function getIdentity(): Promise<{ email: string } | null> {
-    try {
-      return await apiCall('/api/identity');
-    } catch {
-      return null;
-    }
+  async function login(data: SetupData): Promise<UserSettings> {
+    const result = await apiCall('/api/login', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+    settings.value = result;
+    user.value = { login: result.userLogin, avatar_url: result.userAvatar };
+    return result;
+  }
+
+  async function logout(): Promise<void> {
+    await apiCall('/api/logout', { method: 'POST' });
+    user.value = null;
+    settings.value = null;
   }
 
   async function getSettings(): Promise<UserSettings | null> {
@@ -73,7 +81,7 @@ export function useApi() {
 
   return {
     user, settings,
-    getIdentity, getSettings, saveSettings, deleteSettings,
+    login, logout, getSettings, saveSettings, deleteSettings,
     getState, saveState, getPreview,
   };
 }

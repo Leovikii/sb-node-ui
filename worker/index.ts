@@ -1,6 +1,6 @@
 import type { Env } from './types';
 import {
-  handleGetIdentity, handleGetSettings, handlePutSettings,
+  handleLogin, handleLogout, handleGetSettings, handlePutSettings,
   handleDeleteSettings, handleGetState, handlePutState, handlePreview
 } from './routes/api';
 import { handleSubscription } from './routes/sub';
@@ -15,8 +15,10 @@ export default {
     let response: Response;
 
     try {
-      if (path === '/api/identity' && method === 'GET') {
-        response = await handleGetIdentity(request);
+      if (path === '/api/login' && method === 'POST') {
+        response = await handleLogin(request, env);
+      } else if (path === '/api/logout' && method === 'POST') {
+        response = await handleLogout(request, env);
       } else if (path === '/api/settings' && method === 'GET') {
         response = await handleGetSettings(request, env);
       } else if (path === '/api/settings' && method === 'PUT') {

@@ -19,7 +19,19 @@
       <div class="space-y-3">
         <AppleInput :modelValue="ownerRepo" @update:modelValue="onOwnerRepoChange" placeholder="owner/repo" />
         <AppleInput v-model="editPat" type="password" placeholder="更新 PAT (留空则不修改)" />
-        <AppleInput v-model="editToken" placeholder="订阅 Token" />
+        <div class="space-y-1.5">
+          <div class="flex gap-2">
+            <AppleInput v-model="editToken" placeholder="订阅 Token" class="flex-1" />
+            <button
+              @click="generateToken"
+              class="shrink-0 px-3 rounded-xl bg-[#2c2c2e] text-[#86868b] hover:text-[#F596AA] hover:bg-[#3a3a3c] transition-colors cursor-pointer border border-[#38383a]"
+              title="随机生成"
+            >
+              <Shuffle :size="16" />
+            </button>
+          </div>
+          <p v-if="tokenChanged" class="text-xs text-amber-400 pl-1">修改 Token 会导致旧订阅链接失效</p>
+        </div>
       </div>
 
       <div class="flex items-center justify-between pt-1">
@@ -35,7 +47,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, onMounted, onBeforeUnmount } from 'vue';
+import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue';
+import { Shuffle } from 'lucide-vue-next';
 import AppleInput from './AppleInput.vue';
 import AppleButton from './AppleButton.vue';
 import type { UserSettings, GithubUser } from '../types';
@@ -59,12 +72,22 @@ const ownerRepo = ref('');
 const editPat = ref('');
 const editToken = ref('');
 
+const tokenChanged = computed(() =>
+  props.settings != null && editToken.value !== props.settings.subToken
+);
+
 watch(() => props.settings, (s) => {
   if (s) {
     ownerRepo.value = `${s.owner}/${s.repo}`;
     editToken.value = s.subToken;
   }
 }, { immediate: true });
+
+function generateToken() {
+  const bytes = new Uint8Array(16);
+  crypto.getRandomValues(bytes);
+  editToken.value = Array.from(bytes, b => b.toString(16).padStart(2, '0')).join('');
+}
 
 function onOwnerRepoChange(value: string) {
   ownerRepo.value = value;

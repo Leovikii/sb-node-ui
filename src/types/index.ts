@@ -10,7 +10,6 @@ export interface SetupData {
   owner: string;
   repo: string;
   pat: string;
-  subToken: string;
 }
 
 export interface Rule {

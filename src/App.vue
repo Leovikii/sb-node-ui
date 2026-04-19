@@ -83,7 +83,7 @@ import type { SetupData, UserSettings, StateData, Profile } from './types';
 
 const APP_VERSION = 'v2.0.0';
 
-const setupData = reactive<SetupData>({ owner: '', repo: '', pat: '', subToken: '' });
+const setupData = reactive<SetupData>({ owner: '', repo: '', pat: '' });
 const stateData = ref<StateData | null>(null);
 const fileSha = ref<string | null>(null);
 const loadingData = ref(false);
@@ -123,7 +123,7 @@ onMounted(async () => {
 });
 
 async function handleSetup() {
-  if (!setupData.owner || !setupData.repo || !setupData.pat || !setupData.subToken) return;
+  if (!setupData.owner || !setupData.repo || !setupData.pat) return;
   loadingData.value = true;
   try {
     await login(setupData);

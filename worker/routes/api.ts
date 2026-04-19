@@ -10,17 +10,19 @@ import { jsonResponse, errorResponse } from '../lib/security';
 
 const RULES_PATH = 'sing-sub/rules.json';
 
+function generateSubToken(): string {
+  const bytes = new Uint8Array(16);
+  crypto.getRandomValues(bytes);
+  return Array.from(bytes, b => b.toString(16).padStart(2, '0')).join('');
+}
+
 export async function handleLogin(request: Request, env: Env): Promise<Response> {
-  const { owner, repo, pat, subToken } = await request.json() as {
-    owner: string; repo: string; pat: string; subToken: string;
+  const { owner, repo, pat } = await request.json() as {
+    owner: string; repo: string; pat: string;
   };
 
-  if (!owner || !repo || !pat || !subToken) {
+  if (!owner || !repo || !pat) {
     return errorResponse('Missing required fields', 400);
-  }
-
-  if (!/^[a-zA-Z0-9_-]+$/.test(subToken)) {
-    return errorResponse('subToken can only contain letters, numbers, hyphens and underscores', 400);
   }
 
   const userRes = await fetchUser(pat);
@@ -29,19 +31,7 @@ export async function handleLogin(request: Request, env: Env): Promise<Response>
 
   const existing = await getUserSettings(owner, repo, env);
 
-  if (!existing || existing.subToken !== subToken) {
-    const taken = await env.SESSIONS.get(`sub:${subToken}`);
-    if (taken) {
-      const takenData = JSON.parse(taken) as { owner: string; repo: string };
-      if (takenData.owner !== owner || takenData.repo !== repo) {
-        return errorResponse('subToken already taken', 409);
-      }
-    }
-  }
-
-  if (existing && existing.subToken && existing.subToken !== subToken) {
-    await env.SESSIONS.delete(`sub:${existing.subToken}`);
-  }
+  const subToken = existing?.subToken || generateSubToken();
 
   const settings: UserSettings = {
     pat,
@@ -53,7 +43,10 @@ export async function handleLogin(request: Request, env: Env): Promise<Response>
   };
 
   await putUserSettings(settings, env);
-  await env.SESSIONS.put(`sub:${subToken}`, JSON.stringify({ owner, repo }));
+
+  if (!existing) {
+    await env.SESSIONS.put(`sub:${subToken}`, JSON.stringify({ owner, repo }));
+  }
 
   const sessionId = await createSession(owner, repo, env);
 

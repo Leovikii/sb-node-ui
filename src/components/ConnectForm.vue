@@ -10,10 +10,6 @@
           <AppleInput :modelValue="ownerRepo" @update:modelValue="onOwnerRepoChange" placeholder="owner/repo (如: user/singbox-private)" />
           <AppleInput :modelValue="setupData.pat" @update:modelValue="update('pat', $event)" type="password" placeholder="GitHub PAT (repo 读写权限)" />
         </div>
-        <div class="space-y-2">
-          <AppleInput :modelValue="setupData.subToken" @update:modelValue="update('subToken', $event)" placeholder="自定义订阅 Token (如: my-sub)" />
-          <p class="text-xs text-[#86868b] pl-1">用于生成订阅链接，仅支持字母、数字、下划线和连字符</p>
-        </div>
         <AppleButton type="submit" :loading="loading" variant="primary" class="w-full !py-3">
           登录
         </AppleButton>

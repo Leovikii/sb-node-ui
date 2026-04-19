@@ -2,7 +2,7 @@
   <div class="max-w-md mx-auto mt-16 relative z-10">
     <AppleCard class="space-y-8 shadow-2xl">
       <div class="text-center space-y-2">
-        <h2 class="text-2xl font-semibold text-[#f5f5f7]">配置 GitHub 仓库</h2>
+        <h2 class="text-2xl font-semibold text-[#f5f5f7]">连接 GitHub 仓库</h2>
         <p class="text-sm text-[#86868b]">关联私有仓库以管理订阅配置</p>
       </div>
       <form @submit.prevent="$emit('save')" class="space-y-6">
@@ -15,9 +15,19 @@
           <p class="text-xs text-[#86868b] pl-1">用于生成订阅链接，仅支持字母、数字、下划线和连字符</p>
         </div>
         <AppleButton type="submit" :loading="loading" variant="primary" class="w-full !py-3">
-          保存设置
+          登录
         </AppleButton>
       </form>
+      <div class="border-t border-[#38383a] pt-4 space-y-2">
+        <p class="text-xs text-[#86868b] leading-relaxed">
+          本站不存储您的 GitHub 密码，PAT 仅用于访问您指定的仓库。
+          建议为 PAT 设置最小权限范围（仅 repo）并定期轮换。
+        </p>
+        <p class="text-xs text-[#86868b] leading-relaxed">
+          本项目完全开源，建议自行部署使用。
+          <a href="https://github.com/Leovikii/Sing-Sub" target="_blank" rel="noopener" class="text-[#F596AA] hover:underline">查看源码</a>
+        </p>
+      </div>
     </AppleCard>
   </div>
 </template>

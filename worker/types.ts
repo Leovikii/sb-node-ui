@@ -11,8 +11,9 @@ export interface UserSettings {
   userAvatar: string;
 }
 
-export interface UserIdentity {
-  email: string;
+export interface SessionData {
+  owner: string;
+  repo: string;
 }
 
 export interface Profile {

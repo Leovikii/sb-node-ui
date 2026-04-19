@@ -48,10 +48,22 @@ export async function handleLogin(request: Request, env: Env): Promise<Response>
     await env.SESSIONS.put(`sub:${subToken}`, JSON.stringify({ owner, repo }));
   }
 
+  const session: RepoSession = { owner, repo, pat };
+  let warning: string | undefined;
+  try {
+    const file = await fetchFileContent(RULES_PATH, session);
+    if (file) {
+      const state = JSON.parse(file.content) as StateData;
+      await buildAllProfiles(state.profiles, session, subToken, env);
+    }
+  } catch (e) {
+    warning = e instanceof Error ? e.message : 'Build failed';
+  }
+
   const sessionId = await createSession(owner, repo, env);
 
   return jsonResponse(
-    { owner, repo, subToken, userLogin: settings.userLogin, userAvatar: settings.userAvatar },
+    { owner, repo, subToken, userLogin: settings.userLogin, userAvatar: settings.userAvatar, warning },
     200,
     { 'Set-Cookie': sessionCookieHeader(sessionId) },
   );

@@ -10,8 +10,8 @@
       @update:settings="handleUpdateSettings"
     />
 
-    <div v-if="isInitializing" class="flex justify-center items-center py-32 text-[#86868b]">
-      <span class="animate-spin text-3xl">⚪</span>
+    <div v-if="isInitializing" class="flex justify-center items-center py-32">
+      <Loader2 :size="32" class="animate-spin text-[#F596AA]" />
     </div>
 
     <ConnectForm
@@ -70,6 +70,7 @@
 
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue';
+import { Loader2 } from 'lucide-vue-next';
 import AppHeader from './components/AppHeader.vue';
 import ConnectForm from './components/ConnectForm.vue';
 import ProfileEditor from './components/ProfileEditor.vue';
@@ -98,7 +99,7 @@ const previewTitle = ref('');
 const previewContent = ref('');
 const previewLoading = ref(false);
 
-const { user, settings, login, getSettings, saveSettings, deleteSettings, getState, saveState, getPreview } = useApi();
+const { user, settings, login, getSettings, saveSettings, deleteSettings, getState, saveState, rebuild, getPreview } = useApi();
 
 function normalizeProfiles(state: StateData): StateData {
   state.profiles.forEach((p: Profile) => {
@@ -197,12 +198,18 @@ async function handleRefresh() {
   saveStatus.value = 'refreshing';
   statusMessage.value = '';
   try {
-    const data = await getState();
+    const data = await rebuild();
     stateData.value = normalizeProfiles(data.state);
     fileSha.value = data.sha;
-    saveStatus.value = 'success';
-    statusMessage.value = '刷新成功';
-    setTimeout(() => { saveStatus.value = 'idle'; }, 3000);
+    if (data.warning) {
+      saveStatus.value = 'warning';
+      statusMessage.value = '刷新成功，但构建失败: ' + data.warning;
+      setTimeout(() => { saveStatus.value = 'idle'; }, 5000);
+    } else {
+      saveStatus.value = 'success';
+      statusMessage.value = '刷新并重新构建成功';
+      setTimeout(() => { saveStatus.value = 'idle'; }, 3000);
+    }
   } catch (e: any) {
     saveStatus.value = 'error';
     statusMessage.value = '刷新失败: ' + e.message;

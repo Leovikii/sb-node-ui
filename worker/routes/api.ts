@@ -184,6 +184,31 @@ export async function handleGetState(request: Request, env: Env): Promise<Respon
   return jsonResponse({ state, sha: file.sha });
 }
 
+export async function handleRebuild(request: Request, env: Env): Promise<Response> {
+  const auth = await requireAuth(request, env);
+  if (auth instanceof Response) return auth;
+
+  const session: RepoSession = {
+    owner: auth.settings.owner,
+    repo: auth.settings.repo,
+    pat: auth.settings.pat,
+  };
+
+  const file = await fetchFileContent(RULES_PATH, session);
+  if (!file) return errorResponse('No rules found', 404);
+
+  const state = JSON.parse(file.content) as StateData;
+
+  try {
+    await buildAllProfiles(state.profiles, session, auth.settings.subToken, env);
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : 'Build failed';
+    return jsonResponse({ state, sha: file.sha, warning: msg });
+  }
+
+  return jsonResponse({ state, sha: file.sha });
+}
+
 export async function handlePutState(request: Request, env: Env): Promise<Response> {
   const auth = await requireAuth(request, env);
   if (auth instanceof Response) return auth;
@@ -213,19 +238,8 @@ export async function handlePreview(request: Request, env: Env, name: string): P
   const auth = await requireAuth(request, env);
   if (auth instanceof Response) return auth;
 
-  const session: RepoSession = {
-    owner: auth.settings.owner,
-    repo: auth.settings.repo,
-    pat: auth.settings.pat,
-  };
+  const cached = await env.SESSIONS.get(`config:${auth.settings.subToken}:${name}`);
+  if (!cached) return errorResponse('该配置尚未构建，请先保存或刷新', 404);
 
-  const file = await fetchFileContent(RULES_PATH, session);
-  if (!file) return errorResponse('No rules found', 404);
-
-  const state = JSON.parse(file.content) as StateData;
-  const profile = state.profiles.find((p: Profile) => p.name === name);
-  if (!profile) return errorResponse('Profile not found', 404);
-
-  const config = await buildProfile(profile, session);
-  return jsonResponse({ content: config });
+  return jsonResponse({ content: cached });
 }

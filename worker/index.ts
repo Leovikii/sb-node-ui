@@ -1,7 +1,7 @@
 import type { Env } from './types';
 import {
   handleLogin, handleLogout, handleGetSettings, handlePutSettings,
-  handleDeleteSettings, handleGetState, handlePutState, handlePreview
+  handleDeleteSettings, handleGetState, handlePutState, handleRebuild, handlePreview
 } from './routes/api';
 import { handleSubscription } from './routes/sub';
 import { addSecurityHeaders, errorResponse } from './lib/security';
@@ -29,6 +29,8 @@ export default {
         response = await handleGetState(request, env);
       } else if (path === '/api/state' && method === 'PUT') {
         response = await handlePutState(request, env);
+      } else if (path === '/api/rebuild' && method === 'POST') {
+        response = await handleRebuild(request, env);
       } else if (path.startsWith('/api/preview/') && method === 'GET') {
         const name = path.slice(13).replace(/\.json$/, '');
         response = await handlePreview(request, env, name);

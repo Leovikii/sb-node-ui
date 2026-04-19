@@ -4,18 +4,19 @@ Edge-based multi-environment configuration distribution console for [sing-box](h
 
 ## Features
 
-- **Zero Trust auth** — Cloudflare Access protects the management UI. No passwords or cookies to manage.
-- **Server-side security** — GitHub PAT stored in Cloudflare KV, never exposed to the browser.
+- **Cookie-based auth** — Login with GitHub repo + PAT. Session stored as HttpOnly Secure cookie, no third-party auth required.
+- **Server-side security** — GitHub PAT stored in Cloudflare KV (encrypted at rest), never exposed to the browser. Same repo from different devices shares one user entry.
 - **Edge config building** — Worker fetches templates and nodes from GitHub, merges them on the fly, and caches in KV. No GitHub Actions or Gist needed.
 - **Subscription distribution** — `/sub/{token}/{name}.json` with User-Agent filtering (sing-box clients only).
 - **Multi-profile** — Manage multiple environments (e.g. `home`, `office`, `travel`) with independent inbound/outbound rules and templates.
+- **Preview** — Preview cached configs directly from KV, showing exactly what sing-box clients will receive.
 - **Auto-deploy** — Push to `main` triggers GitHub Actions to deploy the Worker automatically.
 
 ## Tech Stack
 
 - **Frontend**: Vue 3 (Composition API) + TypeScript + Vite + Tailwind CSS v4
 - **Backend**: Cloudflare Workers + KV
-- **Auth**: Cloudflare Zero Trust (Access)
+- **Auth**: Cookie-based sessions (HttpOnly, Secure, SameSite=Strict)
 - **CI/CD**: GitHub Actions (deploy only)
 
 ## Prerequisites
@@ -45,26 +46,12 @@ Edge-based multi-environment configuration distribution console for [sing-box](h
 - Cloudflare Dashboard → Storage & Databases → KV → Create a namespace
 - Copy the Namespace ID and update `wrangler.toml`
 
-### 2. Configure Zero Trust
-
-Create two Access Applications in Cloudflare Zero Trust dashboard:
-
-**Application 1 — Protect management UI:**
-- Type: Self-hosted
-- Domain: `your-domain.com`
-- Policy: Allow, selector = Emails, value = your email
-
-**Application 2 — Bypass subscription endpoint:**
-- Type: Self-hosted
-- Domain: `your-domain.com`, Path: `sub`
-- Policy: Bypass, selector = Everyone
-
-### 3. Set GitHub Secrets
+### 2. Set GitHub Secrets
 
 - Go to your repo → Settings → Secrets → Actions
 - Add `CLOUDFLARE_API_TOKEN` (use the "Edit Cloudflare Workers" template)
 
-### 4. Push to Deploy
+### 3. Push to Deploy
 
 ```bash
 git push origin main
@@ -72,13 +59,21 @@ git push origin main
 
 ## Usage
 
-1. Open your domain → Cloudflare Access login (email verification)
-2. First visit: configure GitHub repo, PAT, and custom subscription token
-3. Add/edit profiles — each profile specifies a template URL, node file paths, and filtering rules
-4. Save → commits `sing-sub/rules.json` to GitHub and builds all configs on the edge
-5. Copy the subscription link → paste into sing-box client
+1. Open your domain → Login with `owner/repo`, GitHub PAT, and a custom subscription token
+2. Add/edit profiles — each profile specifies a template URL, node file paths, and filtering rules
+3. Save → commits `sing-sub/rules.json` to GitHub and builds all configs on the edge
+4. Refresh → force rebuilds all configs from latest remote templates and node files
+5. Preview → view the exact cached config that sing-box clients will receive
+6. Copy the subscription link → paste into sing-box client
 
 Subscription URL format: `https://your-domain/sub/{token}/{profile_name}.json`
+
+## Security
+
+- PAT is only stored once in KV, keyed by `owner/repo`. No duplication across sessions.
+- Session cookies are HttpOnly + Secure + SameSite=Strict (30-day expiry).
+- CSP headers restrict scripts and connections to same-origin + GitHub API.
+- Login page includes a disclaimer and link to source code, encouraging self-deployment.
 
 ## License
 

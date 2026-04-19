@@ -74,6 +74,10 @@ export function useApi() {
     });
   }
 
+  async function rebuild(): Promise<{ state: StateData; sha: string | null; warning?: string }> {
+    return apiCall('/api/rebuild', { method: 'POST' });
+  }
+
   async function getPreview(name: string): Promise<string> {
     const data = await apiCall(`/api/preview/${name}`);
     return data.content;
@@ -82,6 +86,6 @@ export function useApi() {
   return {
     user, settings,
     login, logout, getSettings, saveSettings, deleteSettings,
-    getState, saveState, getPreview,
+    getState, saveState, rebuild, getPreview,
   };
 }

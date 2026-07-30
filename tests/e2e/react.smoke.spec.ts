@@ -431,11 +431,28 @@ test('React settings rotate tokens and connect repository with validated Mantine
 test('React resources create a JSON asset through the lazy CodeMirror modal', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   const state = await mockReactApi(page);
+  const noNotePath = 'sing-sub/nodes/client.json';
+  state.assets = [{ path: noNotePath, note: '' }];
+  state.contents[noNotePath] = JSON.stringify({ inbounds: [], outbounds: [] }, null, 2);
   await login(page, state);
 
   await page.getByRole('link', { name: '资源', exact: true }).click();
   await expect(page.getByRole('heading', { name: '节点集' })).toBeVisible();
-  await page.getByRole('button', { name: '新建文件', exact: true }).click();
+  const noNoteCard = page.getByRole('article', { name: 'client', exact: true });
+  await noNoteCard.getByRole('button', { name: '预览 client', exact: true }).click();
+  const noNoteDialog = page.getByRole('dialog');
+  const noNoteHeader = noNoteDialog.getByTestId('entity-editor-header');
+  await expect(noNoteDialog).toHaveAccessibleName('节点集 client');
+  await expect(noNoteHeader.getByText('节点集', { exact: true })).toBeVisible();
+  await expect(noNoteHeader.getByText('client', { exact: true })).toBeVisible();
+  await expect(noNoteHeader.getByRole('button', { name: '关闭', exact: true })).toBeVisible();
+  await expect(noNoteDialog.getByText('client', { exact: true })).toHaveCount(1);
+  await expect(noNoteDialog.getByText('名称', { exact: true })).toHaveCount(0);
+  await expect(noNoteDialog.getByText('备注', { exact: true })).toHaveCount(0);
+  await expect(noNoteDialog.getByText('无备注', { exact: true })).toHaveCount(0);
+  await noNoteDialog.getByRole('button', { name: '关闭', exact: true }).click();
+  await expect(noNoteDialog).toBeHidden();
+  await page.getByRole('button', { name: '新建', exact: true }).click();
 
   const dialog = page.getByRole('dialog');
   await dialog.getByRole('textbox', { name: '名称', exact: true }).fill('edge-nodes');
@@ -457,7 +474,23 @@ test('React resources create a JSON asset through the lazy CodeMirror modal', as
   await expect(assetCard.getByText('NODE', { exact: true })).toHaveCount(0);
   await assetCard.getByRole('button', { name: '预览 edge-nodes', exact: true }).press('Enter');
   const previewDialog = page.getByRole('dialog');
-  await expect(previewDialog.getByRole('heading', { name: '节点集 edge-nodes', exact: true })).toBeVisible();
+  const previewHeader = previewDialog.getByTestId('entity-editor-header');
+  await expect(previewDialog).toHaveAccessibleName('节点集 edge-nodes');
+  await expect(previewHeader.getByText('节点集', { exact: true })).toBeVisible();
+  await expect(previewHeader.getByText('edge-nodes', { exact: true })).toBeVisible();
+  await expect(previewHeader.getByText('Edge nodes', { exact: true })).toBeVisible();
+  await expect(previewHeader.getByRole('button', { name: '关闭', exact: true })).toBeVisible();
+  const [previewNameBox, previewNoteBox] = await Promise.all([
+    previewHeader.getByTestId('entity-editor-name').boundingBox(),
+    previewHeader.getByTestId('entity-editor-note').boundingBox(),
+  ]);
+  expect(previewNameBox).not.toBeNull();
+  expect(previewNoteBox).not.toBeNull();
+  expect(previewNoteBox!.x - (previewNameBox!.x + previewNameBox!.width)).toBeGreaterThanOrEqual(0);
+  expect(previewNoteBox!.x - (previewNameBox!.x + previewNameBox!.width)).toBeLessThanOrEqual(16);
+  await expect(previewDialog.getByText('edge-nodes', { exact: true })).toHaveCount(1);
+  await expect(previewDialog.getByText('名称', { exact: true })).toHaveCount(0);
+  await expect(previewDialog.getByText('备注', { exact: true })).toHaveCount(0);
   await expect(previewDialog.getByText('Edge nodes', { exact: true })).toBeVisible();
   await expect(previewDialog.getByRole('textbox', { name: '名称', exact: true })).toHaveCount(0);
   await expect(previewDialog.getByRole('textbox', { name: '备注', exact: true })).toHaveCount(0);
@@ -481,8 +514,8 @@ test('React resources create a JSON asset through the lazy CodeMirror modal', as
   expect(Math.abs(modeGeometry!.indicatorX - modeGeometry!.labelX)).toBeLessThanOrEqual(1);
   expect(Math.abs(modeGeometry!.indicatorWidth - modeGeometry!.labelWidth)).toBeLessThanOrEqual(1);
   await previewDialog.getByText('编辑', { exact: true }).click();
-  await expect(previewDialog.getByRole('textbox', { name: '名称', exact: true })).toHaveValue('edge-nodes');
-  await expect(previewDialog.getByRole('textbox', { name: '备注', exact: true })).toHaveValue('Edge nodes');
+  await expect(previewHeader.getByRole('textbox', { name: '名称', exact: true })).toHaveValue('edge-nodes');
+  await expect(previewHeader.getByRole('textbox', { name: '备注', exact: true })).toHaveValue('Edge nodes');
   await expect(previewDialog.getByRole('button', { name: '保存', exact: true })).toBeVisible();
   await page.getByRole('dialog').getByRole('button', { name: '关闭', exact: true }).click();
 
@@ -554,21 +587,75 @@ test('React profiles create, preview, copy, duplicate, and delete through Mantin
   }
   await profileCard.getByRole('button', { name: '预览 smoke-profile', exact: true }).press('Enter');
   dialog = page.getByRole('dialog');
+  const profileHeader = dialog.getByTestId('entity-editor-header');
   expect(await dialog.evaluate((element) => element.scrollWidth - element.clientWidth)).toBeLessThanOrEqual(0);
-  await expect(dialog.getByRole('heading', { name: '配置 smoke-profile', exact: true })).toBeVisible();
+  await expect(dialog).toHaveAccessibleName('配置 smoke-profile');
+  await expect(profileHeader.getByText('配置', { exact: true })).toBeVisible();
+  await expect(profileHeader.getByText('smoke-profile', { exact: true })).toBeVisible();
+  await expect(profileHeader.getByText('Primary subscription', { exact: true })).toBeVisible();
+  await expect(profileHeader.getByRole('button', { name: '关闭', exact: true })).toBeVisible();
+  const [profilePreviewNameBox, profilePreviewNoteBox] = await Promise.all([
+    profileHeader.getByTestId('entity-editor-name').boundingBox(),
+    profileHeader.getByTestId('entity-editor-note').boundingBox(),
+  ]);
+  expect(profilePreviewNameBox).not.toBeNull();
+  expect(profilePreviewNoteBox).not.toBeNull();
+  expect(profilePreviewNoteBox!.x - (profilePreviewNameBox!.x + profilePreviewNameBox!.width)).toBeGreaterThanOrEqual(0);
+  expect(profilePreviewNoteBox!.x - (profilePreviewNameBox!.x + profilePreviewNameBox!.width)).toBeLessThanOrEqual(16);
+  await expect(dialog.getByText('smoke-profile', { exact: true })).toHaveCount(1);
+  await expect(dialog.getByText('名称', { exact: true })).toHaveCount(0);
+  await expect(dialog.getByText('备注', { exact: true })).toHaveCount(0);
   await expect(dialog.getByText('Primary subscription', { exact: true })).toBeVisible();
   await expect(dialog.getByRole('textbox', { name: '名称', exact: true })).toHaveCount(0);
   await expect(dialog.getByRole('textbox', { name: '备注', exact: true })).toHaveCount(0);
   await expect(dialog.getByRole('button', { name: '保存', exact: true })).toHaveCount(0);
   await expect(dialog.getByText('"profile": "smoke-profile"', { exact: false })).toBeVisible();
   await dialog.getByText('编辑', { exact: true }).click();
-  await expect(dialog.getByRole('textbox', { name: '名称', exact: true })).toHaveValue('smoke-profile');
-  await expect(dialog.getByRole('textbox', { name: '备注', exact: true })).toHaveValue('Primary subscription');
+  const profileNameInput = profileHeader.getByRole('textbox', { name: '名称', exact: true });
+  const profileNoteInput = profileHeader.getByRole('textbox', { name: '备注', exact: true });
+  await expect(profileNameInput).toHaveValue('smoke-profile');
+  await expect(profileNoteInput).toHaveValue('Primary subscription');
+  const [headerBox, nameInputBox, noteInputBox, closeBox] = await Promise.all([
+    profileHeader.boundingBox(),
+    profileNameInput.boundingBox(),
+    profileNoteInput.boundingBox(),
+    profileHeader.getByRole('button', { name: '关闭', exact: true }).boundingBox(),
+  ]);
+  expect(headerBox).not.toBeNull();
+  expect(nameInputBox).not.toBeNull();
+  expect(noteInputBox).not.toBeNull();
+  expect(closeBox).not.toBeNull();
+  expect(nameInputBox!.x).toBeLessThan(noteInputBox!.x);
+  expect(noteInputBox!.x).toBeLessThan(closeBox!.x);
+  expect(Math.abs(nameInputBox!.y - noteInputBox!.y)).toBeLessThanOrEqual(1);
+  expect(closeBox!.x + closeBox!.width).toBeLessThanOrEqual(headerBox!.x + headerBox!.width + 1);
+  expect(await profileHeader.evaluate((element) => element.scrollWidth - element.clientWidth)).toBeLessThanOrEqual(0);
   const profileEditorViewport = dialog.getByLabel('配置编辑内容', { exact: true });
+  const profileEditorActions = dialog.getByTestId('profile-editor-actions');
   const profileSave = dialog.getByRole('button', { name: '保存', exact: true });
   await expect(profileEditorViewport).toBeVisible();
   await expect(profileSave).toBeVisible();
   expect(await profileSave.evaluate((button) => !button.closest('[aria-label="配置编辑内容"]'))).toBe(true);
+  const [dialogBox, editorViewportBox, editorActionsBox] = await Promise.all([
+    dialog.boundingBox(), profileEditorViewport.boundingBox(), profileEditorActions.boundingBox(),
+  ]);
+  expect(dialogBox).not.toBeNull();
+  expect(editorViewportBox).not.toBeNull();
+  expect(editorActionsBox).not.toBeNull();
+  expect(editorActionsBox!.y - (editorViewportBox!.y + editorViewportBox!.height)).toBeLessThanOrEqual(24);
+  expect(dialogBox!.y + dialogBox!.height - (editorActionsBox!.y + editorActionsBox!.height)).toBeLessThanOrEqual(32);
+  const tallEditorHeight = editorViewportBox!.height;
+  await page.setViewportSize({ width: 320, height: 700 });
+  const [shortDialogBox, shortEditorViewportBox, shortEditorActionsBox] = await Promise.all([
+    dialog.boundingBox(), profileEditorViewport.boundingBox(), profileEditorActions.boundingBox(),
+  ]);
+  expect(shortDialogBox).not.toBeNull();
+  expect(shortEditorViewportBox).not.toBeNull();
+  expect(shortEditorActionsBox).not.toBeNull();
+  expect(tallEditorHeight - shortEditorViewportBox!.height).toBeGreaterThanOrEqual(190);
+  expect(shortEditorActionsBox!.y - (shortEditorViewportBox!.y + shortEditorViewportBox!.height)).toBeLessThanOrEqual(24);
+  expect(shortDialogBox!.y + shortDialogBox!.height - (shortEditorActionsBox!.y + shortEditorActionsBox!.height)).toBeLessThanOrEqual(32);
+  expect(await dialog.evaluate((element) => element.scrollWidth - element.clientWidth)).toBeLessThanOrEqual(0);
   await dialog.getByRole('button', { name: '关闭', exact: true }).click();
 
   await page.getByRole('button', { name: '订阅', exact: true }).click();

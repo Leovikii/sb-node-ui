@@ -1,6 +1,6 @@
 import {
   ActionIcon, Badge, Button, Card, Center, Code, Container, CopyButton, EmptyState, Group, Loader,
-  Menu, Modal, ScrollArea, SegmentedControl, SimpleGrid, Stack, Text, TextInput, Title, Tooltip,
+  Menu, Modal, ScrollArea, SegmentedControl, SimpleGrid, Stack, Text, Title, Tooltip,
   UnstyledButton,
 } from '@mantine/core';
 import { useMediaQuery } from '@mantine/hooks';
@@ -12,7 +12,7 @@ import { useTranslation } from 'react-i18next';
 import type { AssetSummary, RulesetBuildStatusResult, StateData } from '../../../shared';
 import { api } from '../../../src/api/endpoints';
 import { ApiClientError } from '../../../src/api/client';
-import { EntityEditorTitle, ReadOnlyEntityMetadata } from '../../components/EntityEditorMetadata';
+import { EntityEditorHeader } from '../../components/EntityEditorChrome';
 import { useAssetsStore } from '../../stores/assets';
 import { useWorkspaceStore } from '../../stores/workspace';
 import { RulesetEditor } from './RulesetEditor';
@@ -324,65 +324,69 @@ export function ResourcesPage({ type }: { type: ResourceType }) {
         )}
       </Stack>
 
-      <Modal
+      <Modal.Root
         opened={Boolean(editor)} onClose={requestClose}
-        title={editor && (
-          <EntityEditorTitle
-            kind={t(titleKeyByType[type])}
-            title={editor.file.isNew ? t('assets.newFile') : editor.name || t('common.untitled')}
-          />
-        )}
         size="xl" fullScreen={mobile} transitionProps={{ transition: 'fade', duration: 120 }}
         closeOnClickOutside={false}
-        closeButtonProps={{ 'aria-label': t('common.close') }}
       >
-        {editor && (
-          <Stack gap="md">
-            {editor.mode === 'edit' ? (
-              <SimpleGrid cols={{ base: 1, sm: 2 }}>
-                <TextInput label={t('assets.fileName')} value={editor.name} error={editor.name && !/^[a-zA-Z0-9][a-zA-Z0-9._-]*$/.test(editor.name) ? t('assets.invalidName') : null} onChange={(event) => setEditor({ ...editor, name: event.currentTarget.value })} />
-                <TextInput label={t('common.note')} value={editor.note} onChange={(event) => setEditor({ ...editor, note: event.currentTarget.value })} />
-              </SimpleGrid>
-            ) : (
-              <ReadOnlyEntityMetadata
-                name={editor.name} note={editor.note}
-                nameLabel={t('common.name')} noteLabel={t('common.note')} noNoteLabel={t('common.noNote')}
+        <Modal.Overlay />
+        <Modal.Content aria-label={`${t(titleKeyByType[type])} ${editor?.name || t(editor?.file.isNew ? 'assets.newFile' : 'common.untitled')}`}>
+          {editor && (
+            <>
+              <EntityEditorHeader
+                mode={editor.mode} kind={t(titleKeyByType[type])}
+                name={editor.name || t(editor.file.isNew ? 'assets.newFile' : 'common.untitled')}
+                note={editor.note} nameLabel={t('common.name')} noteLabel={t('common.note')}
+                closeLabel={t('common.close')}
+                nameInputProps={{
+                  value: editor.name,
+                  error: editor.name && !/^[a-zA-Z0-9][a-zA-Z0-9._-]*$/.test(editor.name) ? t('assets.invalidName') : null,
+                  onChange: (event) => setEditor({ ...editor, name: event.currentTarget.value }),
+                }}
+                noteInputProps={{
+                  value: editor.note,
+                  onChange: (event) => setEditor({ ...editor, note: event.currentTarget.value }),
+                }}
               />
-            )}
-            <SegmentedControl
-              fullWidth data-testid="resource-mode-control"
-              value={editor.mode}
-              onChange={(mode) => setEditor({ ...editor, mode: mode as 'edit' | 'preview' })}
-              data={[{ value: 'edit', label: t('common.edit') }, { value: 'preview', label: t('common.preview') }]}
-            />
-            {editor.mode === 'edit' && type === 'ruleset' ? (
-              editor.content ? (
-                <ScrollArea h="52dvh" type="auto">
-                  <RulesetEditor
-                    key={`${editor.file.path}-${editor.sha ?? 'new'}`} value={editor.content}
-                    onChange={(content) => setEditor((current) => current ? { ...current, content, structuredDirty: true } : current)}
-                    onValidityChange={(structuredValid) => setEditor((current) => current ? { ...current, structuredValid, structuredDirty: true } : current)}
+              <Modal.Body>
+                <Stack gap="md">
+                  <SegmentedControl
+                    fullWidth data-testid="resource-mode-control"
+                    value={editor.mode}
+                    onChange={(mode) => setEditor({ ...editor, mode: mode as 'edit' | 'preview' })}
+                    data={[{ value: 'edit', label: t('common.edit') }, { value: 'preview', label: t('common.preview') }]}
                   />
-                </ScrollArea>
-              ) : <Center h="52dvh"><Loader /></Center>
-            ) : editor.mode === 'edit' ? (
-              <Suspense fallback={<Center h="52dvh"><Loader /></Center>}>
-                <CodeEditor value={editor.content} onChange={(content) => setEditor((current) => current ? { ...current, content } : current)} />
-              </Suspense>
-            ) : (
-              <ScrollArea h="52dvh" type="auto"><Code block aria-label={t('assets.previewJson')}>{editor.content}</Code></ScrollArea>
-            )}
-            <Group justify="flex-end">
-              <Button type="button" variant="subtle" onClick={requestClose}>
-                {t(editor.mode === 'preview' ? 'common.done' : 'common.cancel')}
-              </Button>
-              {editor.mode === 'edit' && (
-                <Button leftSection={<Save size={17} />} loading={saving} disabled={!dirty || !valid} onClick={() => void save()}>{t('common.save')}</Button>
-              )}
-            </Group>
-          </Stack>
-        )}
-      </Modal>
+                  {editor.mode === 'edit' && type === 'ruleset' ? (
+                    editor.content ? (
+                      <ScrollArea h="52dvh" type="auto">
+                        <RulesetEditor
+                          key={`${editor.file.path}-${editor.sha ?? 'new'}`} value={editor.content}
+                          onChange={(content) => setEditor((current) => current ? { ...current, content, structuredDirty: true } : current)}
+                          onValidityChange={(structuredValid) => setEditor((current) => current ? { ...current, structuredValid, structuredDirty: true } : current)}
+                        />
+                      </ScrollArea>
+                    ) : <Center h="52dvh"><Loader /></Center>
+                  ) : editor.mode === 'edit' ? (
+                    <Suspense fallback={<Center h="52dvh"><Loader /></Center>}>
+                      <CodeEditor value={editor.content} onChange={(content) => setEditor((current) => current ? { ...current, content } : current)} />
+                    </Suspense>
+                  ) : (
+                    <ScrollArea h="52dvh" type="auto"><Code block aria-label={t('assets.previewJson')}>{editor.content}</Code></ScrollArea>
+                  )}
+                  <Group justify="flex-end">
+                    <Button type="button" variant="subtle" onClick={requestClose}>
+                      {t(editor.mode === 'preview' ? 'common.done' : 'common.cancel')}
+                    </Button>
+                    {editor.mode === 'edit' && (
+                      <Button leftSection={<Save size={17} />} loading={saving} disabled={!dirty || !valid} onClick={() => void save()}>{t('common.save')}</Button>
+                    )}
+                  </Group>
+                </Stack>
+              </Modal.Body>
+            </>
+          )}
+        </Modal.Content>
+      </Modal.Root>
     </Container>
   );
 }

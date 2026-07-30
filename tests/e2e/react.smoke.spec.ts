@@ -445,6 +445,24 @@ test('React resources create a JSON asset through the lazy CodeMirror modal', as
   await expect(page.getByText('edge-nodes', { exact: true })).toBeVisible();
 
   const assetCard = page.getByRole('article', { name: 'edge-nodes', exact: true });
+  await expect(assetCard.getByText('NODE', { exact: true })).toHaveCount(0);
+  await page.setViewportSize({ width: 320, height: 900 });
+  await expect.poll(() => page.evaluate(() => (
+    document.documentElement.scrollWidth - document.documentElement.clientWidth
+  ))).toBeLessThanOrEqual(0);
+  for (const control of [
+    assetCard.getByRole('button', { name: '编辑', exact: true }),
+    assetCard.getByRole('button', { name: '更多操作', exact: true }),
+  ]) {
+    const box = await control.boundingBox();
+    expect(box).not.toBeNull();
+    expect(box!.width).toBeGreaterThanOrEqual(44);
+    expect(box!.height).toBeGreaterThanOrEqual(44);
+  }
+  await assetCard.getByRole('button', { name: '预览 edge-nodes', exact: true }).press('Enter');
+  await expect(page.getByRole('dialog').getByText('"inbounds": []', { exact: false })).toBeVisible();
+  await page.getByRole('dialog').getByRole('button', { name: '关闭', exact: true }).click();
+
   await assetCard.getByRole('button', { name: '更多操作', exact: true }).click();
   await page.getByRole('menuitem', { name: '删除文件', exact: true }).click();
   await expect(dialog.getByText('确定删除 edge-nodes 吗？引用该文件的配置可能会被更新。', { exact: true })).toBeVisible();
@@ -471,6 +489,32 @@ test('React profiles create, preview, copy, duplicate, and delete through Mantin
   });
   await expect(page.getByText('smoke-profile', { exact: true })).toBeVisible();
 
+  const profileCard = page.getByRole('article', { name: 'smoke-profile', exact: true });
+  await page.setViewportSize({ width: 320, height: 900 });
+  await expect.poll(() => page.evaluate(() => (
+    document.documentElement.scrollWidth - document.documentElement.clientWidth
+  ))).toBeLessThanOrEqual(0);
+  const [dragBox, titleBox, editBox, moreBox] = await Promise.all([
+    profileCard.getByRole('button', { name: '调整配置顺序', exact: true }).boundingBox(),
+    profileCard.getByText('smoke-profile', { exact: true }).boundingBox(),
+    profileCard.getByRole('button', { name: '编辑', exact: true }).boundingBox(),
+    profileCard.getByRole('button', { name: '更多操作', exact: true }).boundingBox(),
+  ]);
+  expect(dragBox).not.toBeNull();
+  expect(titleBox).not.toBeNull();
+  expect(editBox).not.toBeNull();
+  expect(moreBox).not.toBeNull();
+  expect(dragBox!.x).toBeLessThan(titleBox!.x);
+  expect(editBox!.x).toBeGreaterThan(titleBox!.x);
+  for (const box of [dragBox!, editBox!, moreBox!]) {
+    expect(box.width).toBeGreaterThanOrEqual(44);
+    expect(box.height).toBeGreaterThanOrEqual(44);
+  }
+  await profileCard.getByRole('button', { name: '预览 smoke-profile', exact: true }).press('Enter');
+  dialog = page.getByRole('dialog');
+  await expect(dialog.getByText('"profile": "smoke-profile"', { exact: false })).toBeVisible();
+  await dialog.getByRole('button', { name: '关闭', exact: true }).click();
+
   await page.getByRole('button', { name: '订阅', exact: true }).click();
   await expect(page.getByRole('button', { name: '已复制', exact: true })).toBeVisible();
 
@@ -482,7 +526,7 @@ test('React profiles create, preview, copy, duplicate, and delete through Mantin
   await expect.poll(() => state.stateRequests.length).toBe(2);
   await expect(page.getByText('smoke-profile_copy', { exact: true })).toBeVisible();
 
-  await page.getByText('smoke-profile', { exact: true }).click();
+  await profileCard.getByRole('button', { name: '预览 smoke-profile', exact: true }).click();
   dialog = page.getByRole('dialog');
   await expect(dialog.getByText('"profile": "smoke-profile"', { exact: false })).toBeVisible();
   await dialog.getByRole('button', { name: '关闭', exact: true }).click();

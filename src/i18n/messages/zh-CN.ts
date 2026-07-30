@@ -100,6 +100,7 @@ export default {
     deleteTitle: '删除文件',
     deleteConfirm: '确定删除 {name} 吗？引用该文件的配置可能会被更新。',
     previewJson: 'JSON 预览',
+    previewFile: '预览 {name}',
   },
   rulesets: {
     jsonOnly: 'JSON',
@@ -142,6 +143,7 @@ export default {
     subscription: '订阅',
     duplicate: '复制配置',
     remove: '删除配置',
+    previewProfile: '预览 {name}',
     name: '名称',
     previewFailed: '获取预览失败',
     templateFailed: '获取模板失败',

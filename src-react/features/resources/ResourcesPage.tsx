@@ -1,6 +1,7 @@
 import {
   ActionIcon, Badge, Button, Card, Center, Code, Container, CopyButton, EmptyState, Group, Loader,
   Menu, Modal, ScrollArea, SegmentedControl, SimpleGrid, Stack, Text, TextInput, Title, Tooltip,
+  UnstyledButton,
 } from '@mantine/core';
 import { useMediaQuery } from '@mantine/hooks';
 import { modals } from '@mantine/modals';
@@ -257,20 +258,29 @@ export function ResourcesPage({ type }: { type: ResourceType }) {
             <EmptyState.Actions><Button onClick={createFile}>{t('assets.newFile')}</Button></EmptyState.Actions>
           </EmptyState>
         ) : (
-          <SimpleGrid minColWidth="300px">
+          <SimpleGrid cols={{ base: 1, sm: 2 }}>
             {files.map((file) => (
-              <Card key={file.path} role="article" aria-label={basename(file.path)} withBorder radius="lg" padding="lg">
+              <Card
+                key={file.path} role="article" aria-label={basename(file.path)}
+                withBorder radius="lg" padding="lg" pos="relative"
+              >
+                <UnstyledButton
+                  aria-label={t('assets.previewFile', { name: basename(file.path) })}
+                  onClick={() => void openFile(file, 'preview')}
+                  pos="absolute" top={0} right={0} bottom={0} left={0}
+                  style={{ zIndex: 1 }}
+                />
                 <Group justify="space-between" align="flex-start" wrap="nowrap">
                   <Stack gap={4} miw={0}>
-                    <Group gap="xs"><Text fw={700} truncate>{basename(file.path)}</Text><Badge variant="light">{type.toUpperCase()}</Badge></Group>
+                    <Text fw={700} truncate>{basename(file.path)}</Text>
                     {file.note && <Text size="sm" c="dimmed" truncate>{file.note}</Text>}
                   </Stack>
-                  <Group gap={4} wrap="nowrap">
+                  <Group gap={4} wrap="nowrap" pos="relative" style={{ zIndex: 2 }}>
                     <Tooltip label={t('common.edit')}>
-                      <ActionIcon variant="subtle" aria-label={t('common.edit')} onClick={() => void openFile(file)}><Pencil size={18} /></ActionIcon>
+                      <ActionIcon size={44} variant="subtle" aria-label={t('common.edit')} onClick={() => void openFile(file)}><Pencil size={18} /></ActionIcon>
                     </Tooltip>
                     <Menu position="bottom-end" shadow="md" transitionProps={{ transition: 'pop', duration: 120 }}>
-                      <Menu.Target><ActionIcon variant="subtle" aria-label={t('common.moreActions')}><MoreHorizontal size={18} /></ActionIcon></Menu.Target>
+                      <Menu.Target><ActionIcon size={44} variant="subtle" aria-label={t('common.moreActions')}><MoreHorizontal size={18} /></ActionIcon></Menu.Target>
                       <Menu.Dropdown><Menu.Item color="red" leftSection={<Trash2 size={16} />} onClick={() => remove(file)}>{t('assets.removeFile')}</Menu.Item></Menu.Dropdown>
                     </Menu>
                   </Group>
@@ -285,11 +295,11 @@ export function ResourcesPage({ type }: { type: ResourceType }) {
                       <Badge color={build?.status === 'failed' ? 'red' : build?.formats.binary ? 'teal' : 'gray'} variant="light">
                         {buildLabel(file)}
                       </Badge>
-                      <Group gap="xs">
+                      <Group gap="xs" pos="relative" style={{ zIndex: 2 }}>
                         <CopyButton value={`${window.location.origin}/rules/${encodeURIComponent(id)}.${format}`} timeout={1800}>
                           {({ copied, copy }) => (
                             <Button
-                              size="compact-sm" variant="light" color={copied ? 'teal' : undefined}
+                              h={44} variant="light" color={copied ? 'teal' : undefined}
                               aria-label={copied ? t('common.copied') : copyLabel}
                               leftSection={copied ? <Check size={15} /> : <Link2 size={15} />} onClick={copy}
                             >{format.toUpperCase()}</Button>
@@ -298,7 +308,7 @@ export function ResourcesPage({ type }: { type: ResourceType }) {
                         {build?.status === 'failed' && (
                           <Tooltip label={t('rulesets.retryBuild')}>
                             <ActionIcon
-                              color="red" variant="light" aria-label={t('rulesets.retryBuild')}
+                              size={44} color="red" variant="light" aria-label={t('rulesets.retryBuild')}
                               loading={retryingRuleset === id} onClick={() => void retryBuild(file)}
                             ><RotateCcw size={16} /></ActionIcon>
                           </Tooltip>

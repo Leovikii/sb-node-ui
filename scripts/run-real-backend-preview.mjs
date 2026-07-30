@@ -14,7 +14,9 @@ export function isAllowedRealBackendRequest(method, requestUrl) {
   if (normalizedMethod === 'GET' || normalizedMethod === 'HEAD' || normalizedMethod === 'OPTIONS') return true;
 
   const pathname = new URL(requestUrl ?? '/', 'http://localhost').pathname;
-  return normalizedMethod === 'POST' && (pathname === '/api/login' || pathname === '/api/logout');
+  return normalizedMethod === 'POST' && (
+    pathname === '/api/login' || pathname === '/api/logout' || pathname === '/api/preview'
+  );
 }
 
 function readOnlyGuard() {
@@ -64,7 +66,7 @@ export async function startRealBackendPreview() {
   await server.listen();
   server.printUrls();
   console.warn(`Real backend: ${REAL_BACKEND_ORIGIN}`);
-  console.warn('Safety mode: only GET/HEAD/OPTIONS and POST /api/login or /api/logout are forwarded.');
+  console.warn('Safety mode: only reads, authentication, and ephemeral POST /api/preview are forwarded.');
 
   const close = async () => {
     await server.close();

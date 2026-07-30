@@ -100,6 +100,7 @@ export default {
     deleteTitle: 'Delete file',
     deleteConfirm: 'Delete {name}? Profiles that reference it may be updated.',
     previewJson: 'JSON preview',
+    previewFile: 'Preview {name}',
   },
   rulesets: {
     jsonOnly: 'JSON',
@@ -142,6 +143,7 @@ export default {
     subscription: 'Subscription',
     duplicate: 'Duplicate profile',
     remove: 'Delete profile',
+    previewProfile: 'Preview {name}',
     name: 'Name',
     previewFailed: 'Preview failed',
     templateFailed: 'Template load failed',

@@ -1,7 +1,7 @@
 import {
   ActionIcon, Badge, Button, Card, Center, Code, Container, CopyButton, EmptyState, Group,
   Loader, Menu, Modal, Paper, ScrollArea, SegmentedControl, Select, SimpleGrid, Stack,
-  Text, TextInput, Title, Tooltip,
+  Text, TextInput, Title, Tooltip, UnstyledButton,
 } from '@mantine/core';
 import { useForm } from '@mantine/form';
 import { useMediaQuery } from '@mantine/hooks';
@@ -354,29 +354,36 @@ function SortableProfileCard({
       ref={setNodeRef} className={`${classes.sortableCard} ${isDragging ? classes.dragging : ''}`}
       style={{ transform: CSS.Transform.toString(transform), transition, zIndex: isDragging ? 2 : undefined }}
       role="article" aria-label={profile.name}
-      withBorder radius="lg" padding="lg"
+      withBorder radius="lg" padding="lg" pos="relative"
     >
+      <UnstyledButton
+        aria-label={t('profiles.previewProfile', { name: profile.name })}
+        onClick={() => onOpen('preview')}
+        pos="absolute" top={0} right={0} bottom={0} left={0}
+        style={{ zIndex: 1 }}
+      />
       <Stack gap="md">
         <Group justify="space-between" align="flex-start" wrap="nowrap">
-          <Stack gap={4} miw={0} onClick={() => onOpen('preview')} style={{ cursor: 'pointer' }}>
+          <Tooltip label={t('profiles.reorder')}>
+            <ActionIcon
+              className={classes.dragHandle} size={44} variant="subtle" aria-label={t('profiles.reorder')}
+              pos="relative" style={{ zIndex: 2 }}
+              {...attributes} {...listeners}
+            ><GripVertical size={18} /></ActionIcon>
+          </Tooltip>
+          <Stack gap={4} miw={0} flex={1}>
             <Text fw={700} size="lg" truncate>{profile.name}</Text>
             <Text size="sm" c="dimmed" truncate>{profile.note || t('profiles.noNote')}</Text>
           </Stack>
-          <Group gap={4} wrap="nowrap">
-            <Tooltip label={t('profiles.reorder')}>
-              <ActionIcon
-                className={classes.dragHandle} variant="subtle" aria-label={t('profiles.reorder')}
-                {...attributes} {...listeners}
-              ><GripVertical size={18} /></ActionIcon>
-            </Tooltip>
+          <Group gap={4} wrap="nowrap" pos="relative" style={{ zIndex: 2 }}>
             <Tooltip label={t('common.edit')}>
-              <ActionIcon variant="subtle" aria-label={t('common.edit')} onClick={() => onOpen('edit')}>
+              <ActionIcon size={44} variant="subtle" aria-label={t('common.edit')} onClick={() => onOpen('edit')}>
                 <Pencil size={18} />
               </ActionIcon>
             </Tooltip>
             <Menu position="bottom-end" shadow="md" transitionProps={{ transition: 'pop', duration: 120 }}>
               <Menu.Target>
-                <ActionIcon variant="subtle" aria-label={t('common.moreActions')}><MoreHorizontal size={18} /></ActionIcon>
+                <ActionIcon size={44} variant="subtle" aria-label={t('common.moreActions')}><MoreHorizontal size={18} /></ActionIcon>
               </Menu.Target>
               <Menu.Dropdown>
                 <Menu.Item leftSection={<Copy size={16} />} onClick={onDuplicate}>{t('profiles.duplicate')}</Menu.Item>
@@ -390,7 +397,7 @@ function SortableProfileCard({
             <Button
               variant="light" color={copied ? 'teal' : 'pink'} fullWidth
               leftSection={copied ? <Check size={17} /> : <Link2 size={17} />}
-              onClick={copy}
+              h={44} pos="relative" style={{ zIndex: 2 }} onClick={copy}
             >{copied ? t('common.copied') : t('profiles.subscription')}</Button>
           )}
         </CopyButton>

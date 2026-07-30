@@ -21,6 +21,7 @@
 | FE-3140–FE-3144 | DONE | Profile 与 GitHub Sync |
 | FE-3150 | DONE | 完整桌面、移动端、双语、Firefox 与键盘回归 |
 | FE-3151 | IN_PROGRESS | 包体积、首帧与性能验收 |
+| FE-3154 | DONE | 卡片整面预览交互、Profile 拖曳层级与资源移动端布局优化 |
 | FE-3152–FE-3153 | TODO | 生产入口切换、Vue 清理与 3.1 发布收束 |
 
 状态只能使用 `TODO`、`IN_PROGRESS`、`DONE`、`BLOCKED`。只有验收条件全部满足时标记 `DONE`。
@@ -105,6 +106,16 @@
 - 包体积：React 主入口由 90.72 kB gzip 增至 90.86 kB，约增加 0.14 kB；资源与 Profile feature 各约增加 0.01 kB gzip，未引入新依赖或自定义动画代码。
 - 遗留风险：FE-3151 仍等待 Chrome DevTools MCP 的 LCP/CLS/网络依赖链审计和获得明确授权后的 Worker dry-run；生产入口仍未切换。
 - 下一任务：完成剩余性能与 dry-run 门槛，再评估 FE-3152。
+
+### 2026-07-30：FE-3154 卡片交互与移动端边界
+
+- 完成内容：资源与 Profile 卡片恢复整面预览入口，并以 Mantine `UnstyledButton` 保持键盘按钮语义；独立编辑、菜单、订阅和拖曳操作保持各自命中层。Profile 拖曳把手移到内容前导侧，管理操作保留在右侧；卡片 ActionIcon 与订阅操作统一为至少 44×44 px。
+- 视觉取舍：移除同类资源页内重复的 `NODE`/`TEMPLATE`/`ADAPTER`/`RULESET` 类型 Badge；Ruleset 构建状态 Badge 继续保留。资源 `SimpleGrid` 改用 Mantine 原生响应式列数，修复 320 px 下由 300 px 最小列宽造成的 12 px 横向溢出。
+- 真实后端：确认 `POST /api/preview` 只读取认证快照并临时生成内容后，将其加入本地只读代理的精确白名单；保存、删除、GitHub sync 与 SRS build 仍返回 403。真实 `vr` Profile 预览成功，未出现 `Forbidden` 或预览失败。
+- 验证：lint、许可证门禁、四套 typecheck、115 unit、66 integration、production build 通过；Chromium 桌面/移动 46 项及受限环境外 Firefox 2 项 E2E 通过。新增 320 px 资源/Profile 无横向溢出、44 px 命中区、拖曳前导位置、冗余 Badge 缺失及键盘整面预览断言。
+- 包体积：React 主入口 90.87 kB gzip，较前一基线增加约 0.01 kB；未增加依赖或自定义动画。
+- 遗留风险：Firefox 在受限执行环境内仍会在 `browserContext.newPage()` 命中已知 `_page` 启动错误，脱离该限制后两项均通过；FE-3151 的 DevTools 性能审计与 Worker dry-run 仍未完成。
+- 下一任务：继续 FE-3151 性能与 dry-run 门槛，或按用户反馈继续 UI 边界审查。
 
 ## 完成记录模板
 

@@ -9,6 +9,7 @@ describe('real backend preview safety policy', () => {
     expect(isAllowedRealBackendRequest('OPTIONS', '/api/settings')).toBe(true);
     expect(isAllowedRealBackendRequest('POST', '/api/login')).toBe(true);
     expect(isAllowedRealBackendRequest('POST', '/api/logout')).toBe(true);
+    expect(isAllowedRealBackendRequest('POST', '/api/preview')).toBe(true);
   });
 
   it('blocks persistent and operational writes', () => {
@@ -17,5 +18,6 @@ describe('real backend preview safety policy', () => {
     expect(isAllowedRealBackendRequest('DELETE', '/api/file?path=sing-sub/nodes/a.json')).toBe(false);
     expect(isAllowedRealBackendRequest('POST', '/api/github-sync/push')).toBe(false);
     expect(isAllowedRealBackendRequest('POST', '/api/rulesets/example/build')).toBe(false);
+    expect(isAllowedRealBackendRequest('POST', '/api/preview/anything')).toBe(false);
   });
 });

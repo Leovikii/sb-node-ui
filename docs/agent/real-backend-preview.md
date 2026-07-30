@@ -12,7 +12,7 @@ http://127.0.0.1:8787/react#/connect
 安全策略：
 
 - 转发 `GET`、`HEAD`、`OPTIONS`，用于读取 bootstrap、设置、资源、Profile、GitHub sync 与 SRS 状态。
-- 只额外转发 `POST /api/login` 和 `POST /api/logout`。
+- 额外转发 `POST /api/login`、`POST /api/logout` 与不持久化的 `POST /api/preview`。
 - 阻止设置、文件、Profile、sync、Ruleset build 等持久化或操作性写请求并返回 HTTP 403。
 - 不得为方便测试静默放开写请求；真实数据写入需要用户对具体操作重新授权。
 

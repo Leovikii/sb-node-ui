@@ -6,8 +6,6 @@
 
 Sing-Sub is a self-hosted control plane for editing and distributing [sing-box](https://sing-box.sagernet.org/) configurations.
 
-Version: [`v3.1.0-beta.2`](docs/wiki/Release-3.1.0-beta.2.en.md) (beta; `v3.0.0` remains the rollback baseline)
-
 ## Features
 
 - Edit profiles, node sets, templates, adapters, and rule sets in a responsive bilingual WebUI.
@@ -30,22 +28,6 @@ The recommended deployment uses a GitHub fork and Cloudflare Workers Builds:
 The initializer creates or reuses `sing-sub-data`, generates missing runtime signing secrets, and creates an empty workspace with the Momo adapter on first login. GitHub data sync, PAT, and SRS compilation are optional after deployment.
 
 See the [complete deployment guide](https://github.com/Leovikii/Sing-Sub/wiki/Deployment) or its [version-controlled source](docs/wiki/Deployment.md).
-
-## Technology
-
-- React 19, Mantine 9, React Router, Zustand, and react-i18next
-- TypeScript, Vite, Mantine JsonInput, and Zod
-- Cloudflare Workers, Static Assets, Cache API, and R2
-- Vitest and Playwright
-
-## Development
-
-```powershell
-npm ci
-npm run dev
-npm run verify
-npm run worker:dry-run
-```
 
 User and operator documentation is indexed in [docs](docs/README.md).
 

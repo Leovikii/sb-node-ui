@@ -60,13 +60,28 @@ React 当前只是未做拆分的平台骨架，gzip JS 比 Vue 入口高约 22%
 | 全部客户端 JS 原始大小 | 735.72 kB | 1,220.19 kB | +65.8% |
 | 入口 CSS gzip | 8.91 kB | 33.90 kB | +280.5% |
 
-Beta 首屏通过原计划“不高于 3.0 入口 10%”的门槛，并通过路由与 CodeMirror lazy 验证；全量加载所有 feature 后的 JS 未达到“总量增幅不超过 15%”的正式版门槛。`FE-3151` 因此继续为 `IN_PROGRESS`，Beta 发布说明必须保留该已知体积风险，正式版前继续评估 Mantine/CodeMirror 与 feature chunk 成本。
+Beta 首屏通过原计划“不高于 3.0 入口 10%”的门槛，并通过路由与 CodeMirror lazy 验证；全量加载所有 feature 后的 JS 未达到“总量增幅不超过 15%”的正式版门槛。`FE-3151` 因此继续为 `IN_PROGRESS`，Agent 风险记录必须保留该已知体积问题，正式版前继续评估 Mantine/CodeMirror 与 feature chunk 成本。
 
 ## Beta.2 性能收束
 
-`v3.1.0-beta.2` 使用 Mantine `JsonInput` 替换 CodeMirror，并从 production dependencies 移除 16 个 CodeMirror/Lezer/辅助包。相同 Vite 生产构建口径下，全部 `dist/assets/*.js` 为 281.87 KiB gzip，较 `v3.0.0` 的 248.53 KiB 增加约 13.4%，低于正式版 15% 上限 285.81 KiB。
+`v3.1.0-beta.2` 使用 Mantine `JsonInput` 替换 CodeMirror，并从 production dependencies 移除 16 个 CodeMirror/Lezer/辅助包。补齐轻量查找/替换后的相同 Vite 生产构建口径下，全部 `dist/assets/*.js` 为 283.30 KiB gzip，较 `v3.0.0` 的 248.53 KiB 增加约 14.0%，低于正式版 15% 上限 285.81 KiB。
 
-`npm run check:bundle` 在 production build 后重新 gzip 所有客户端 JS chunk；`npm run verify` 已包含该门禁。主路由、资源、Profile 与其他 feature 继续按需加载，但预算不会因懒加载而忽略任何客户端功能代码。Chrome DevTools MCP 已安装到本地 Codex 配置，但当前进程不能热加载新 MCP；Core Web Vitals 与真实网络依赖链需在重启后的会话补测，不影响已量化并自动门禁的构建总量结论。
+`npm run check:bundle` 在 production build 后重新 gzip 所有客户端 JS chunk；`npm run verify` 已包含该门禁。主路由、资源、Profile 与其他 feature 继续按需加载，但预算不会因懒加载而忽略任何客户端功能代码。
+
+## Beta.2 DevTools 审计
+
+在 CPU 1×、无网络限速的 localhost 上，以 Wrangler production build、已登录资源页采集 Chrome DevTools trace：
+
+| 指标 | 结果 | 判断 |
+|---|---:|---|
+| LCP | 554 ms | 良好 |
+| INP | 13 ms | 良好 |
+| CLS | 0.00 | 良好 |
+| 最大关键请求链 | 212 ms | 无需专项优化 |
+
+CSS 与 `theme-init.js` 被工具列为 render-blocking，但预计 FCP/LCP 可节省时间均为 0 ms，因此不建议为该提示增加 preload、内联样式或新的拆包复杂度。Vite + 真实后端对照为 LCP 1553 ms、CLS 0.0001，其中 `/api/bootstrap` 约 1.1 秒；Ruleset build 状态请求约 3.5–4.7 秒但发生在 LCP 后，不属于首屏阻塞。
+
+资源弹窗的预览/编辑切换另以连续 12 个 `requestAnimationFrame` 采样，Dialog 的位置与尺寸误差均不超过 1 px。可见运动来自 Mantine `SegmentedControl` 原生指示器，而非 Modal 外框重排；保留该低成本反馈，不增加自定义动画或强制禁用 transition。以上数据没有 CrUX 实际用户样本，不能替代部署后的真实设备观察。
 
 ## 安全审计状态
 

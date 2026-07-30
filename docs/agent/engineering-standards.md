@@ -56,6 +56,7 @@
 - Profile 筛选结果必须同时显示节点协议类型和节点名称；颜色只增强协议分级，不得作为唯一信息来源。长标签在移动端不得撑破容器，完整语义由 Tooltip 与可访问名称保留。
 - 资源与 Profile 编辑器将类型、名称、备注和关闭按钮统一放在 Modal Header；预览态名称按内容占宽，备注紧随其后并保持左对齐，编辑态在相同位置原位切换为输入框，Modal Body 不得重复元数据。长业务表单或预览内容使用独立 ScrollArea，底部操作区不得进入该滚动区域；移动端全屏 Modal 的 ScrollArea 必须弹性填满标题与操作区之间的剩余高度，不得保留固定 `vh` 高度造成底部留白。
 - Ruleset Accordion 的类型 Badge 是区块唯一可见标题，Textarea 只保留可访问名称。来源区底部控件行同时容纳最近更新时间、更新周期和删除操作；更新既有 URL 的周期不得丢失 `last_updated`。
+- Ruleset Accordion 只默认展开具有内容的区块；空区块和新建规则集默认折叠。通用 JSON 编辑器继续使用 Mantine `JsonInput`，格式化、校验和查找/替换控件不得引入第二套编辑器运行时。
 - Playwright 必须覆盖桌面、移动端、Firefox 专项、双语和键盘操作。
 
 ## 6. 依赖与许可证
@@ -74,4 +75,10 @@
 - 切换生产入口前还必须通过 Worker dry-run、许可证扫描、bundle 对比、暗色首帧和完整 viewport 矩阵。
 - production build 后必须执行全客户端 JS gzip 预算门禁；不得以路由懒加载为由忽略全部功能加载后的总量。
 - 不部署、不写生产 R2、不发布版本，除非用户明确授权。
+
+## 8. 公开文档边界
+
+- 根目录中英文 README 与 `docs/wiki` 只包含功能介绍、部署和使用说明，不维护当前版本入口、发布说明或更新日志。
+- 包体积、依赖审计、迁移任务、验证结果和 Agent 工作记录只写入 `docs/agent`。
+- 长期部署、更新和恢复操作写入 `docs/operations`；发布历史使用 Git tag、GitHub Release 或 Git 历史，不建立 Wiki 版本页面。
 

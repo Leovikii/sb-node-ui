@@ -149,9 +149,13 @@ export function RulesetEditor({
     const source = sourceMap.get(url);
     return source ? [source] : [];
   }));
+  const defaultOpenSections = [
+    ...(lines(draft.sourceUrls).length ? ['source'] : []),
+    ...manualKeys.filter((key) => lines(draft.manual[key]).length),
+  ];
 
   return (
-    <Accordion multiple defaultValue={['source', ...manualKeys]} variant="separated" radius="md" order={3}>
+    <Accordion multiple defaultValue={defaultOpenSections} variant="separated" radius="md" order={3}>
       <Accordion.Item value="source">
         <Accordion.Control>
           <Group gap="xs"><Badge variant="light" color="violet">SOURCE</Badge><Text size="sm" c="dimmed">{t('rulesets.sourceDescription')}</Text></Group>

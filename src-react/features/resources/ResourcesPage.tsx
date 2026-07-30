@@ -1,5 +1,5 @@
 import {
-  ActionIcon, Badge, Button, Card, Center, Code, Container, CopyButton, EmptyState, Group, JsonInput, Loader,
+  ActionIcon, Badge, Button, Card, Center, Code, Container, CopyButton, EmptyState, Group, Loader,
   Menu, Modal, ScrollArea, SegmentedControl, SimpleGrid, Stack, Text, Title, Tooltip,
   UnstyledButton,
 } from '@mantine/core';
@@ -13,6 +13,7 @@ import type { AssetSummary, RulesetBuildStatusResult, StateData } from '../../..
 import { api } from '../../../src/api/endpoints';
 import { ApiClientError } from '../../../src/api/client';
 import { EntityEditorHeader } from '../../components/EntityEditorChrome';
+import { JsonEditor } from '../../components/JsonEditor';
 import { useAssetsStore } from '../../stores/assets';
 import { useWorkspaceStore } from '../../stores/workspace';
 import { RulesetEditor } from './RulesetEditor';
@@ -365,12 +366,8 @@ export function ResourcesPage({ type }: { type: ResourceType }) {
                       </ScrollArea>
                     ) : <Center h="52dvh"><Loader /></Center>
                   ) : editor.mode === 'edit' ? (
-                    <JsonInput
-                      aria-label={t('assets.jsonEditor')}
-                      value={editor.content}
-                      validationError={t('assets.invalidJson')}
-                      formatOnBlur resize="none" spellCheck={false}
-                      styles={{ input: { height: '52dvh', overflow: 'auto', fontFamily: 'var(--mantine-font-family-monospace)' } }}
+                    <JsonEditor
+                      ariaLabel={t('assets.jsonEditor')} value={editor.content} validationError={t('assets.invalidJson')}
                       onChange={(content) => setEditor((current) => current ? { ...current, content } : current)}
                     />
                   ) : (

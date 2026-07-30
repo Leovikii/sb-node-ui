@@ -6,8 +6,6 @@
 
 Sing-Sub 是一个用于编辑和分发 [sing-box](https://sing-box.sagernet.org/) 配置的自托管控制台。
 
-版本：[`v3.1.0-beta.2`](docs/wiki/Release-3.1.0-beta.2.md)（测试版；`v3.0.0` 保留为回滚基线）
-
 ## 功能特色
 
 - 在响应式双语 WebUI 中管理配置、节点集、模板、适配器和规则集。
@@ -30,22 +28,6 @@ Sing-Sub 是一个用于编辑和分发 [sing-box](https://sing-box.sagernet.org
 初始化器会创建或复用 `sing-sub-data`、生成缺失的运行时签名密钥，并在首次登录时创建空 workspace 和 Momo 适配器。GitHub 数据同步、PAT 与 SRS 编译均为部署后的可选功能。
 
 请阅读[完整部署指南](https://github.com/Leovikii/Sing-Sub/wiki/DeploymentZH)或其[仓库内源文件](docs/wiki/DeploymentZH.md)。
-
-## 技术栈
-
-- React 19、Mantine 9、React Router、Zustand、react-i18next
-- TypeScript、Vite、Mantine JsonInput、Zod
-- Cloudflare Workers、Static Assets、Cache API、R2
-- Vitest、Playwright
-
-## 开发
-
-```powershell
-npm ci
-npm run dev
-npm run verify
-npm run worker:dry-run
-```
 
 用户与运维文档统一见 [docs](docs/README.md)。
 

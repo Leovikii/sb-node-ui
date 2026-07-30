@@ -3,7 +3,7 @@
 更新日期：2026-07-31
 回滚基线：`3.0.0`
 当前候选：`3.1.0-beta.2`
-状态：`3.1.0-beta.1` 生产验证通过；FE-3151/FE-3160 已完成，`3.1.0-beta.2` 待用户部署验证。
+状态：`3.1.0-beta.1` 生产验证通过；FE-3161 已完成，`3.1.0-beta.2` 待用户部署验证。
 
 ## 任务台账
 
@@ -28,6 +28,8 @@
 | FE-3158 | DONE | 编辑器标题行元数据收敛与预览/编辑原位切换 |
 | FE-3159 | DONE | 编辑器预览标题紧凑排列与移动端弹性滚动区 |
 | FE-3160 | DONE | Beta.2 性能门禁、规则集来源控件与编辑器尺寸稳定性 |
+| FE-3161 | DONE | 空规则集区块默认折叠、轻量 JSON 查找/替换与 Chrome DevTools 性能审计 |
+| FE-3162 | DONE | 删除公开发布说明与版本入口，收敛 README/Wiki 文档边界 |
 | FE-3152 | DONE | 默认入口切换 React 与 Vue 迁移栈清理 |
 | FE-3153 | DONE | `3.1.0-beta.1` 版本、公开文档与发布说明收束 |
 
@@ -198,6 +200,23 @@
 - 性能工具：Chrome DevTools MCP 已安装到本地 Codex 配置；当前进程不能热加载新 MCP，Core Web Vitals 与网络 trace 需重启 Codex 后作为补充测量执行，不记录未采集的指标，也不影响已经量化并自动门禁的总 JS 结论。
 - 遗留风险：`3.1.0-beta.2` 尚未部署、推送、打 tag 或发布；真实保存、Ruleset 外部抓取、GitHub sync 与 SRS 仍由用户在实际部署后验证。
 - 下一任务：用户验收保留的本地规则集编辑窗口，并决定是否部署 Beta.2。
+
+### 2026-07-31：FE-3161 JSON 编辑体验与渲染性能复核
+
+- 完成内容：规则集只默认展开具有内容的类型区块，空区块和新建规则集保持折叠；Mantine `JsonInput` 增加显式格式化、`Ctrl/Cmd+F` 查找和 `Ctrl/Cmd+H` 替换，并使用 Mantine Popover 提供上一个、下一个、替换当前项和全部替换操作。未恢复 CodeMirror或新增运行时依赖。
+- 性能结论：Wrangler production build 的本地已登录资源页测得 LCP 554 ms、INP 13 ms、CLS 0.00，最大关键请求链 212 ms；CSS 与 `theme-init.js` 虽被识别为 render-blocking，但预计 FCP/LCP 收益均为 0 ms，不继续优化。Vite + 真实后端仅作为开发环境对照，LCP 1553 ms、CLS 0.0001，约 1.1 秒的 `/api/bootstrap` 是主要差异。
+- 切换审计：资源弹窗从预览切到 JSON 编辑时，连续 12 个 animation frame 的外框 `x/y/width/height` 与切换前误差均不超过 1 px，标题栏和最终 Dialog 高度误差也不超过 1 px。肉眼变化来自 Mantine `SegmentedControl` 原生指示动画和内容替换，不是 Modal 重排抖动，因此不禁用该提示动画。
+- 验证：lint、shared/web/worker typecheck、115 项 unit、66 项 integration、production build、全客户端 JS gzip 门禁、Chromium 桌面/移动 22 项和 Firefox 2 项专项均通过；最终全客户端 JS 为 283.30 KiB gzip，低于 285.81 KiB 上限。受限环境内完整 verify 的 Firefox 启动曾命中已知 `_page` 错误，同两项在受限环境外重跑通过。
+- 遗留风险：性能数据来自 CPU 1×、无网络限速的 localhost，且无 CrUX 实际用户数据；`3.1.0-beta.2` 尚未部署、推送、打 tag 或发布，真实保存、外部规则抓取、GitHub sync 与 SRS 仍由用户在实际部署后验证。
+- 下一任务：用户验收 Beta.2 的规则集折叠、JSON 查找/替换和切换视觉，再决定是否部署测试版。
+
+### 2026-07-31：FE-3162 公开文档边界收束
+
+- 完成内容：删除 Beta.1/Beta.2 中英文发布说明及 README、Wiki 首页、侧栏和用户文档索引中的版本入口；根目录中英文 README 同时移除技术栈和开发命令，只保留产品能力、部署使用入口与许可证。
+- 长期约束：ADR-057 锁定根 README 与 `docs/wiki` 不维护当前版本、发布说明、更新日志或开发记录；工程状态进入 `docs/agent`，长期运维步骤进入 `docs/operations`。
+- 验证：公开 README、`docs/README.md` 与 `docs/wiki` 已无 `Release-3.1`、当前测试版、发布说明或 changelog 引用；`git diff --check` 通过。
+- 遗留风险：GitHub Wiki 若已发布旧版本页面，需要在后续同步 Wiki 内容时从远端单独删除；本任务只修改仓库中的 Wiki 源文件，不执行远端发布或部署。
+- 下一任务：用户验收当前 Beta.2 前端后决定是否部署。
 
 ## 完成记录模板
 

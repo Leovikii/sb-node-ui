@@ -26,6 +26,8 @@
 | ADR-053 | ACCEPTED | `3.1.0-beta.1` 切换默认入口到 React，并删除已无调用方的 Vue 迁移栈；`3.0.0` 保留为代码回滚基线。 |
 | ADR-054 | ACCEPTED | 资源与 Profile 编辑器统一以实体名称为主标题、类型为辅助信息；预览态元数据只读，操作区独立于可滚动内容。 |
 | ADR-055 | ACCEPTED | JSON 资源编辑改用 Mantine `JsonInput`，移除 CodeMirror 运行时并以自动化总 JS 预算门禁防止回归。 |
+| ADR-056 | ACCEPTED | Mantine `JsonInput` 通过原生输入选择 API和 Mantine Popover 恢复轻量查找/替换，不重新引入编辑器运行时。 |
+| ADR-057 | ACCEPTED | 根 README 与公开 Wiki 只提供功能介绍、使用和部署说明，不维护版本入口、发布说明、更新日志或开发过程记录。 |
 
 ## ADR-050：React 19 + Mantine 9
 
@@ -66,4 +68,16 @@ Beta 切换是对正式版总包体积门槛的有限例外：首屏、功能回
 原因：CodeMirror 及其 commands、language、lint、search、state、theme、view 依赖形成约 116.8 KiB gzip 的二级懒加载代码，是全客户端 JS 超出正式版预算的决定性来源。`JsonInput` 已包含在锁定的 Mantine 运行时中，功能覆盖当前业务正确性所需能力，也更符合“优先组件库原生能力、减少自定义实现”的迁移原则。
 
 构建后必须自动计算 `dist/assets/*.js` 的 gzip 总量，并维持不高于 `v3.0.0` 全客户端 JS 基线 248.53 KiB 的 115%，即 285.81 KiB。该门禁衡量全部懒加载功能，而不只衡量首屏入口；修改预算需要新的显式决策。
+
+## ADR-056：Mantine 原生 JSON 查找与替换
+
+通用 JSON 编辑继续使用 Mantine `JsonInput`，并以 Mantine `ActionIcon`、`Tooltip`、`Popover`、`TextInput` 和原生 `textarea` 选择 API 提供显式格式化、字面量查找与替换控件。编辑器聚焦时，`Ctrl/Cmd+F` 打开查找，`Ctrl/Cmd+H` 打开替换；控件支持上一个、下一个、替换当前项和全部替换。失焦格式化、JSON 语法校验、保存前完整解析与原生撤销/重做继续保留。
+
+该能力属于具有明确业务语义的薄组件，不自研输入框、弹层、焦点管理或快捷键框架，不新增运行时依赖，也不恢复 CodeMirror 的行号、语法高亮、lint worker 或搜索运行时。新增代码必须继续通过 ADR-055 的 285.81 KiB 全客户端 JS gzip 门禁；不得为恢复搜索功能提高预算。
+
+## ADR-057：公开文档不承担版本日志职责
+
+根目录中英文 README 与 `docs/wiki` 只面向用户介绍产品能力，并提供部署、配置和日常使用说明。它们不显示当前版本入口，不保存发布说明、更新日志、迁移任务、包体积、依赖审计、自动化测试过程或 Agent 开发记录。
+
+版本与工程状态继续保存在应用包元数据和 `docs/agent`；部署与恢复的长期操作步骤保存在 `docs/operations`。发布历史如有需要使用 Git tag、GitHub Release 或 Git 历史，不在 Wiki 中建立逐版本页面。
 

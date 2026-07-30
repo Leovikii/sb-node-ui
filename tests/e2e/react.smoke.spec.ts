@@ -462,9 +462,38 @@ test('React resources edit validated JSON with Mantine JsonInput', async ({ page
   await nameEditor.click();
   await expect(dialog.getByText('JSON 语法错误', { exact: true })).toBeVisible();
   await expect(saveButton).toBeDisabled();
-  await jsonEditor.fill('{"inbounds":[],"outbounds":[]}');
+  await jsonEditor.fill('{"inbounds":[],"outbounds":[],"label":"edge-label edge-label"}');
   await nameEditor.fill('edge-nodes');
-  await expect(jsonEditor).toHaveValue('{\n  "inbounds": [],\n  "outbounds": []\n}');
+  await expect(jsonEditor).toHaveValue('{\n  "inbounds": [],\n  "outbounds": [],\n  "label": "edge-label edge-label"\n}');
+  await expect(dialog.getByRole('button', { name: '格式化 JSON', exact: true })).toBeVisible();
+  await jsonEditor.press('Control+f');
+  const findInput = page.getByRole('textbox', { name: '查找', exact: true });
+  await expect(findInput).toBeVisible();
+  await findInput.fill('edge-label');
+  await page.getByRole('button', { name: '下一个匹配项', exact: true }).click();
+  expect(await jsonEditor.evaluate((element) => (
+    element.value.slice(element.selectionStart, element.selectionEnd)
+  ))).toBe('edge-label');
+  await jsonEditor.press('Control+h');
+  const replaceInput = page.getByRole('textbox', { name: '替换为', exact: true });
+  await expect(replaceInput).toBeVisible();
+  await replaceInput.fill('node-label');
+  await page.setViewportSize({ width: 320, height: 900 });
+  const [findBox, replaceAllBox] = await Promise.all([
+    findInput.boundingBox(), page.getByRole('button', { name: '全部替换', exact: true }).boundingBox(),
+  ]);
+  expect(findBox).not.toBeNull();
+  expect(replaceAllBox).not.toBeNull();
+  for (const box of [findBox!, replaceAllBox!]) {
+    expect(box.x).toBeGreaterThanOrEqual(0);
+    expect(box.x + box.width).toBeLessThanOrEqual(320);
+  }
+  await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(0);
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.getByRole('button', { name: '替换当前项', exact: true }).click();
+  await expect(jsonEditor).toHaveValue(/"label": "node-label edge-label"/);
+  await page.getByRole('button', { name: '全部替换', exact: true }).click();
+  await expect(jsonEditor).toHaveValue(/"label": "node-label node-label"/);
   await dialog.getByRole('textbox', { name: '备注', exact: true }).fill('Edge nodes');
   await saveButton.click();
 
@@ -526,6 +555,15 @@ test('React resources edit validated JSON with Mantine JsonInput', async ({ page
     previewHeader.boundingBox(), previewDialog.boundingBox(),
   ]);
   await previewDialog.getByText('编辑', { exact: true }).click();
+  const transitionDialogBoxes = await page.evaluate(async () => {
+    const samples: Array<{ x: number; y: number; width: number; height: number }> = [];
+    for (let index = 0; index < 12; index += 1) {
+      await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+      const rect = document.querySelector<HTMLElement>('[role="dialog"]')?.getBoundingClientRect();
+      if (rect) samples.push({ x: rect.x, y: rect.y, width: rect.width, height: rect.height });
+    }
+    return samples;
+  });
   await expect(previewHeader.getByRole('textbox', { name: '名称', exact: true })).toHaveValue('edge-nodes');
   await expect(previewHeader.getByRole('textbox', { name: '备注', exact: true })).toHaveValue('Edge nodes');
   await expect(previewDialog.getByRole('button', { name: '保存', exact: true })).toBeVisible();
@@ -538,6 +576,12 @@ test('React resources edit validated JSON with Mantine JsonInput', async ({ page
   expect(editDialogBox).not.toBeNull();
   expect(Math.abs(previewHeaderBox!.height - editHeaderBox!.height)).toBeLessThanOrEqual(1);
   expect(Math.abs(previewDialogBox!.height - editDialogBox!.height)).toBeLessThanOrEqual(1);
+  for (const sample of transitionDialogBoxes) {
+    expect(Math.abs(sample.x - previewDialogBox!.x)).toBeLessThanOrEqual(1);
+    expect(Math.abs(sample.y - previewDialogBox!.y)).toBeLessThanOrEqual(1);
+    expect(Math.abs(sample.width - previewDialogBox!.width)).toBeLessThanOrEqual(1);
+    expect(Math.abs(sample.height - previewDialogBox!.height)).toBeLessThanOrEqual(1);
+  }
   await page.getByRole('dialog').getByRole('button', { name: '关闭', exact: true }).click();
 
   await page.setViewportSize({ width: 320, height: 900 });
@@ -782,11 +826,27 @@ test('React rulesets edit structured sources and manual rules, retry builds, and
   await expect.poll(() => state.buildRequests.length).toBe(1);
   await expect(card.getByRole('button', { name: '复制 SRS 链接', exact: true })).toBeVisible();
 
+  await page.getByRole('button', { name: '新建', exact: true }).click();
+  const newDialog = page.getByRole('dialog');
+  for (const sectionName of [
+    'SOURCE 每行一个 HTTPS URL。',
+    'DOMAIN 每行一个完整域名。',
+    'DOMAIN_SUFFIX 每行一个域名后缀。',
+    'DOMAIN_KEYWORD 每行一个域名关键字。',
+    'DOMAIN_REGEX 每行一个 RE2 域名正则表达式。',
+  ]) {
+    await expect(newDialog.getByRole('button', { name: sectionName, exact: true })).toHaveAttribute('aria-expanded', 'false');
+  }
+  await newDialog.getByRole('button', { name: '取消', exact: true }).click();
+
   await card.getByRole('button', { name: '编辑', exact: true }).click();
   const dialog = page.getByRole('dialog');
   await expect(dialog.getByText('SOURCE', { exact: true })).toHaveCount(1);
   await expect(dialog.getByText('DOMAIN', { exact: true })).toHaveCount(1);
   await expect(dialog.getByText('更新周期', { exact: true })).toHaveCount(0);
+  await expect(dialog.getByRole('button', { name: 'SOURCE 每行一个 HTTPS URL。', exact: true })).toHaveAttribute('aria-expanded', 'true');
+  const domainSection = dialog.getByRole('button', { name: 'DOMAIN 每行一个完整域名。', exact: true });
+  await expect(domainSection).toHaveAttribute('aria-expanded', 'false');
   await expect(dialog.getByRole('textbox', { name: 'SOURCE', exact: true })).toHaveValue('https://example.com/rules.json');
   const sourceControls = dialog.getByTestId('ruleset-source-controls');
   const intervalSelect = dialog.getByRole('combobox', { name: '更新周期', exact: true });
@@ -796,6 +856,7 @@ test('React rulesets edit structured sources and manual rules, retry builds, and
   expect(await sourceDelete.evaluate((element) => Boolean(element.closest('[data-testid="ruleset-source-controls"]')))).toBe(true);
   await intervalSelect.click();
   await page.getByRole('option', { name: '每天', exact: true }).click();
+  await domainSection.click();
   await dialog.getByRole('textbox', { name: 'DOMAIN', exact: true }).fill('example.com\nwww.example.com');
   await page.setViewportSize({ width: 320, height: 900 });
   expect(await dialog.evaluate((element) => element.scrollWidth - element.clientWidth)).toBeLessThanOrEqual(0);

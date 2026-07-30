@@ -23,6 +23,7 @@
 | FE-3151 | IN_PROGRESS | 包体积、首帧与性能验收 |
 | FE-3154 | DONE | 卡片整面预览交互、Profile 拖曳层级与资源移动端布局优化 |
 | FE-3155 | DONE | 资源预览切换控件首帧修复与 AppShell 品牌图标 |
+| FE-3156 | DONE | Profile 筛选节点协议标签与移动端排版 |
 | FE-3152–FE-3153 | TODO | 生产入口切换、Vue 清理与 3.1 发布收束 |
 
 状态只能使用 `TODO`、`IN_PROGRESS`、`DONE`、`BLOCKED`。只有验收条件全部满足时标记 `DONE`。
@@ -31,7 +32,7 @@
 
 - 3.0 源码：43 个前端 TS/Vue/CSS 文件，约 5,741 行；其中 25 个 Vue 文件约 4,407 行。
 - 专业依赖：CodeMirror、Lucide、vuedraggable 保留对应能力，React 侧分别使用 CodeMirror、Lucide React、dnd-kit。
-- E2E：Vue 与 React 双入口共 23 个 Playwright 场景；Chromium 桌面/移动共 46 次执行通过，React 10 个场景在两端共 20 次执行通过；另有 Firefox 2 次专项通过。布局测试已改用 role/label 或稳定 test id，不再依赖 PrimeVue/Mantine 私有 class。
+- E2E：Vue 与 React 双入口共 24 个 Playwright 场景；Chromium 桌面/移动共 48 次执行通过，React 11 个场景在两端共 22 次执行通过；另有 Firefox 2 次专项通过。布局测试已改用 role/label 或稳定 test id，不再依赖 PrimeVue/Mantine 私有 class。
 - Worker/shared/backend 不在 3.1 迁移范围。
 
 ## 会话记录
@@ -127,6 +128,16 @@
 - 包体积：React 主入口为 91.11 kB gzip，较 FE-3154 基线增加约 0.24 kB；未新增依赖、自定义动画或图像资产。
 - 遗留风险：Firefox 受限环境启动问题及 FE-3151 的 DevTools 性能审计、Worker dry-run 状态不变。
 - 下一任务：继续按用户反馈做 UI 边界审查，或完成 FE-3151 剩余门槛。
+
+### 2026-07-30：FE-3156 Profile 节点协议标签
+
+- 完成内容：Profile 筛选结果恢复“协议类型 + 节点名称”的信息层级，并沿用旧版协议等级语义；改用 Mantine 原生 `Badge` 与 `Tooltip`，通过优先、推荐、可用、标准、不推荐、结构、未分级七档文字和颜色表达等级。不推荐档使用琥珀色，红色继续只用于错误与危险状态。
+- 移动端：标签允许在 flex 容器内收缩，最长宽度不超过匹配结果区；节点名称使用 Badge 原生单行省略，Tooltip 与 `aria-label` 保留协议、等级和完整节点名。新增 320 px 长节点名边界断言，同时覆盖优先、不推荐和未知协议。
+- 文件/模块：`src-react/features/profiles/ProfilesPage.tsx`、`tests/e2e/react.smoke.spec.ts`、`docs/agent/engineering-standards.md`。
+- 验证：lint、许可证门禁、四套 typecheck、115 unit、66 integration、production build 通过；Chromium 桌面/移动 48 项及受限环境外 Firefox 2 项 E2E 通过。新增场景断言页面无横向溢出、每个标签不越过结果容器、协议等级颜色不同且完整可访问名称可定位。
+- 包体积：React 主入口保持 91.11 kB gzip；Profile feature chunk 为 21.64 kB gzip。未新增依赖、通用包装组件或自定义标签动画。
+- 遗留风险：真实后端节点名称取决于用户数据，浏览器的 localhost URL 安全策略阻止了本轮连接失败后的可视化复核；响应式布局与真实 Chromium 渲染已由 Playwright 覆盖。Firefox 受限环境启动问题及 FE-3151 的 DevTools 性能审计、Worker dry-run 状态不变。
+- 下一任务：继续按用户反馈检查真实数据下的视觉密度，或完成 FE-3151 剩余门槛。
 
 ## 完成记录模板
 

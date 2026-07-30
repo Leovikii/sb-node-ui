@@ -34,6 +34,50 @@ interface JsonNode {
   type?: string;
 }
 
+type ProtocolTier =
+  | 'preferred'
+  | 'recommended'
+  | 'acceptable'
+  | 'standard'
+  | 'discouraged'
+  | 'structural'
+  | 'unknown';
+
+const protocolTiers: Record<string, ProtocolTier> = {
+  vless: 'preferred',
+  anytls: 'recommended',
+  naive: 'recommended',
+  naiveproxy: 'recommended',
+  hysteria: 'acceptable',
+  hysteria2: 'acceptable',
+  tuic: 'acceptable',
+  wireguard: 'acceptable',
+  wg: 'acceptable',
+  http: 'standard',
+  socks: 'standard',
+  socks5: 'standard',
+  mixed: 'standard',
+  trojan: 'discouraged',
+  shadowsocks: 'discouraged',
+  ss: 'discouraged',
+  vmess: 'discouraged',
+  direct: 'structural',
+  block: 'structural',
+  dns: 'structural',
+  selector: 'structural',
+  urltest: 'structural',
+};
+
+const tierPresentation: Record<ProtocolTier, { color: string; labelKey: string }> = {
+  preferred: { color: 'teal', labelKey: 'profiles.tierPreferred' },
+  recommended: { color: 'cyan', labelKey: 'profiles.tierRecommended' },
+  acceptable: { color: 'blue', labelKey: 'profiles.tierAcceptable' },
+  standard: { color: 'gray', labelKey: 'profiles.tierStandard' },
+  discouraged: { color: 'yellow', labelKey: 'profiles.tierDiscouraged' },
+  structural: { color: 'violet', labelKey: 'profiles.tierStructural' },
+  unknown: { color: 'gray', labelKey: 'profiles.tierUnknown' },
+};
+
 interface EditorState {
   profile: Profile;
   oldName?: string;
@@ -76,6 +120,35 @@ function applyFilters(nodes: JsonNode[], filters: FilterAction[]): JsonNode[] {
     }
   }
   return result;
+}
+
+function MatchedNodeBadge({ node }: { node: JsonNode }) {
+  const { t } = useTranslation();
+  const type = node.type?.trim() || 'unknown';
+  const typeLabel = type.toUpperCase();
+  const tier = protocolTiers[type.toLowerCase()] ?? 'unknown';
+  const presentation = tierPresentation[tier];
+  const tierLabel = t(presentation.labelKey);
+  const tag = node.tag ?? '';
+  const accessibleLabel = `${typeLabel}，${tierLabel}，${tag}`;
+
+  return (
+    <Tooltip label={`${typeLabel} · ${tierLabel} · ${tag}`} withArrow>
+      <Badge
+        aria-label={accessibleLabel}
+        color={presentation.color}
+        variant="light"
+        size="md"
+        radius="sm"
+        maw="100%"
+        tt="none"
+        leftSection={typeLabel}
+        style={{ flexShrink: 1 }}
+      >
+        {tag}
+      </Badge>
+    </Tooltip>
+  );
 }
 
 function FilterRow({
@@ -122,7 +195,7 @@ function FilterRow({
         {value.keyword.trim() && (
           <div className={classes.nodeList} aria-label={t('profiles.matches')}>
             {matched.slice(0, 10).map((node) => (
-              <Badge key={node.tag} variant="light" color="pink">{node.tag}</Badge>
+              <MatchedNodeBadge key={`${node.type ?? 'unknown'}:${node.tag ?? ''}`} node={node} />
             ))}
             {matched.length > 10 && <Badge variant="outline">+{matched.length - 10}</Badge>}
             {matched.length === 0 && <Text size="sm" c="dimmed">{t('profiles.noMatches')}</Text>}

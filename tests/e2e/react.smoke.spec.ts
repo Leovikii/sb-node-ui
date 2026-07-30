@@ -568,6 +568,56 @@ test('React profiles create, preview, copy, duplicate, and delete through Mantin
   await expect(page.getByText('smoke-profile_copy', { exact: true })).toBeHidden();
 });
 
+test('React profile filters preserve protocol semantics without overflowing mobile layouts', async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 900 });
+  const state = await mockReactApi(page);
+  const nodesPath = 'sing-sub/nodes/filter-nodes.json';
+  state.assets = [{ path: nodesPath, note: 'Filter nodes' }];
+  state.contents[nodesPath] = JSON.stringify({
+    inbounds: [
+      { type: 'vless', tag: 'home-vr-in' },
+      { type: 'trojan', tag: 'very-long-mobile-node-name-that-must-not-overflow-the-profile-editor-in' },
+      { type: 'custom', tag: 'unknown-in' },
+    ],
+    outbounds: [],
+  });
+  await login(page, state);
+
+  await page.getByRole('button', { name: '新建配置', exact: true }).first().click();
+  const dialog = page.getByRole('dialog');
+  await dialog.getByRole('combobox', { name: '节点集', exact: true }).click();
+  await page.getByRole('option', { name: 'filter-nodes', exact: true }).click();
+  await dialog.getByRole('textbox', { name: '关键词', exact: true }).fill('in');
+
+  const matches = dialog.getByLabel('匹配的节点', { exact: true });
+  const preferred = matches.getByLabel('VLESS，优先，home-vr-in', { exact: true });
+  const discouraged = matches.getByLabel(
+    'TROJAN，不推荐，very-long-mobile-node-name-that-must-not-overflow-the-profile-editor-in',
+    { exact: true },
+  );
+  const unknown = matches.getByLabel('CUSTOM，未分级，unknown-in', { exact: true });
+  await expect(preferred).toBeVisible();
+  await expect(discouraged).toBeVisible();
+  await expect(unknown).toBeVisible();
+
+  const [preferredColor, discouragedColor] = await Promise.all([
+    preferred.evaluate((element) => getComputedStyle(element).color),
+    discouraged.evaluate((element) => getComputedStyle(element).color),
+  ]);
+  expect(preferredColor).not.toBe(discouragedColor);
+  await expect.poll(() => page.evaluate(() => (
+    document.documentElement.scrollWidth - document.documentElement.clientWidth
+  ))).toBeLessThanOrEqual(0);
+
+  const matchesBox = await matches.boundingBox();
+  expect(matchesBox).not.toBeNull();
+  for (const badge of [preferred, discouraged, unknown]) {
+    const box = await badge.boundingBox();
+    expect(box).not.toBeNull();
+    expect(box!.x + box!.width).toBeLessThanOrEqual(matchesBox!.x + matchesBox!.width + 1);
+  }
+});
+
 test('React rulesets edit structured sources and manual rules, retry builds, and expose the SRS link', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.context().grantPermissions(['clipboard-read', 'clipboard-write']);

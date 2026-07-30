@@ -456,7 +456,13 @@ test('React resources create a JSON asset through the lazy CodeMirror modal', as
   const assetCard = page.getByRole('article', { name: 'edge-nodes', exact: true });
   await expect(assetCard.getByText('NODE', { exact: true })).toHaveCount(0);
   await assetCard.getByRole('button', { name: '预览 edge-nodes', exact: true }).press('Enter');
-  await expect(page.getByRole('dialog').getByText('"inbounds": []', { exact: false })).toBeVisible();
+  const previewDialog = page.getByRole('dialog');
+  await expect(previewDialog.getByRole('heading', { name: '节点集 edge-nodes', exact: true })).toBeVisible();
+  await expect(previewDialog.getByText('Edge nodes', { exact: true })).toBeVisible();
+  await expect(previewDialog.getByRole('textbox', { name: '名称', exact: true })).toHaveCount(0);
+  await expect(previewDialog.getByRole('textbox', { name: '备注', exact: true })).toHaveCount(0);
+  await expect(previewDialog.getByRole('button', { name: '保存', exact: true })).toHaveCount(0);
+  await expect(previewDialog.getByText('"inbounds": []', { exact: false })).toBeVisible();
   const modeGeometry = await page.getByTestId('resource-mode-control').evaluate((root) => {
     const checked = root.querySelector<HTMLInputElement>('input[type="radio"]:checked');
     const label = checked ? root.querySelector<HTMLLabelElement>(`label[for="${checked.id}"]`) : null;
@@ -474,6 +480,10 @@ test('React resources create a JSON asset through the lazy CodeMirror modal', as
   expect(modeGeometry).not.toBeNull();
   expect(Math.abs(modeGeometry!.indicatorX - modeGeometry!.labelX)).toBeLessThanOrEqual(1);
   expect(Math.abs(modeGeometry!.indicatorWidth - modeGeometry!.labelWidth)).toBeLessThanOrEqual(1);
+  await previewDialog.getByText('编辑', { exact: true }).click();
+  await expect(previewDialog.getByRole('textbox', { name: '名称', exact: true })).toHaveValue('edge-nodes');
+  await expect(previewDialog.getByRole('textbox', { name: '备注', exact: true })).toHaveValue('Edge nodes');
+  await expect(previewDialog.getByRole('button', { name: '保存', exact: true })).toBeVisible();
   await page.getByRole('dialog').getByRole('button', { name: '关闭', exact: true }).click();
 
   await page.setViewportSize({ width: 320, height: 900 });
@@ -490,8 +500,10 @@ test('React resources create a JSON asset through the lazy CodeMirror modal', as
     expect(box!.height).toBeGreaterThanOrEqual(44);
   }
   await assetCard.getByRole('button', { name: '预览 edge-nodes', exact: true }).press('Enter');
-  await expect(page.getByRole('dialog').getByText('"inbounds": []', { exact: false })).toBeVisible();
-  await page.getByRole('dialog').getByRole('button', { name: '关闭', exact: true }).click();
+  const mobilePreviewDialog = page.getByRole('dialog');
+  await expect(mobilePreviewDialog.getByText('"inbounds": []', { exact: false })).toBeVisible();
+  expect(await mobilePreviewDialog.evaluate((element) => element.scrollWidth - element.clientWidth)).toBeLessThanOrEqual(0);
+  await mobilePreviewDialog.getByRole('button', { name: '关闭', exact: true }).click();
 
   await assetCard.getByRole('button', { name: '更多操作', exact: true }).click();
   await page.getByRole('menuitem', { name: '删除文件', exact: true }).click();
@@ -542,7 +554,21 @@ test('React profiles create, preview, copy, duplicate, and delete through Mantin
   }
   await profileCard.getByRole('button', { name: '预览 smoke-profile', exact: true }).press('Enter');
   dialog = page.getByRole('dialog');
+  expect(await dialog.evaluate((element) => element.scrollWidth - element.clientWidth)).toBeLessThanOrEqual(0);
+  await expect(dialog.getByRole('heading', { name: '配置 smoke-profile', exact: true })).toBeVisible();
+  await expect(dialog.getByText('Primary subscription', { exact: true })).toBeVisible();
+  await expect(dialog.getByRole('textbox', { name: '名称', exact: true })).toHaveCount(0);
+  await expect(dialog.getByRole('textbox', { name: '备注', exact: true })).toHaveCount(0);
+  await expect(dialog.getByRole('button', { name: '保存', exact: true })).toHaveCount(0);
   await expect(dialog.getByText('"profile": "smoke-profile"', { exact: false })).toBeVisible();
+  await dialog.getByText('编辑', { exact: true }).click();
+  await expect(dialog.getByRole('textbox', { name: '名称', exact: true })).toHaveValue('smoke-profile');
+  await expect(dialog.getByRole('textbox', { name: '备注', exact: true })).toHaveValue('Primary subscription');
+  const profileEditorViewport = dialog.getByLabel('配置编辑内容', { exact: true });
+  const profileSave = dialog.getByRole('button', { name: '保存', exact: true });
+  await expect(profileEditorViewport).toBeVisible();
+  await expect(profileSave).toBeVisible();
+  expect(await profileSave.evaluate((button) => !button.closest('[aria-label="配置编辑内容"]'))).toBe(true);
   await dialog.getByRole('button', { name: '关闭', exact: true }).click();
 
   await page.getByRole('button', { name: '订阅', exact: true }).click();

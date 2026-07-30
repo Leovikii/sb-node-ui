@@ -24,6 +24,7 @@ import { zod4Resolver } from 'mantine-form-zod-resolver';
 import { profileSchema, type FilterAction, type Profile, type StateData } from '../../../shared';
 import { ApiClientError } from '../../../src/api/client';
 import { api } from '../../../src/api/endpoints';
+import { EntityEditorTitle, ReadOnlyEntityMetadata } from '../../components/EntityEditorMetadata';
 import { useAssetsStore } from '../../stores/assets';
 import { useSessionStore } from '../../stores/session';
 import { useWorkspaceStore } from '../../stores/workspace';
@@ -321,17 +322,30 @@ function ProfileEditorModal({
 
   return (
     <Modal
-      opened onClose={requestClose} title={editor.isNew ? t('profiles.newProfile') : form.values.name}
+      opened onClose={requestClose}
+      title={(
+        <EntityEditorTitle
+          kind={t('nav.profiles')}
+          title={editor.isNew ? t('profiles.newProfile') : form.values.name || t('common.untitled')}
+        />
+      )}
       size="xl" fullScreen={mobile} closeOnClickOutside={false}
       closeButtonProps={{ 'aria-label': t('common.close') }}
       transitionProps={{ transition: mobile ? 'fade' : 'pop' }}
     >
       <form onSubmit={submit}>
         <Stack gap="lg">
-          <SimpleGrid cols={{ base: 1, sm: 2 }}>
-            <TextInput label={t('profiles.name')} withAsterisk {...form.getInputProps('name')} />
-            <TextInput label={t('common.note')} {...form.getInputProps('note')} />
-          </SimpleGrid>
+          {mode === 'edit' ? (
+            <SimpleGrid cols={{ base: 1, sm: 2 }}>
+              <TextInput label={t('profiles.name')} withAsterisk {...form.getInputProps('name')} />
+              <TextInput label={t('common.note')} {...form.getInputProps('note')} />
+            </SimpleGrid>
+          ) : (
+            <ReadOnlyEntityMetadata
+              name={form.values.name} note={form.values.note ?? ''}
+              nameLabel={t('common.name')} noteLabel={t('common.note')} noNoteLabel={t('common.noNote')}
+            />
+          )}
           <SegmentedControl
             fullWidth value={mode} onChange={changeMode}
             data={[{ value: 'edit', label: t('common.edit') }, { value: 'preview', label: t('common.preview') }]}
@@ -342,30 +356,34 @@ function ProfileEditorModal({
               <ScrollArea h="50dvh"><Code block>{preview}</Code></ScrollArea>
             )
           ) : (
-            <Stack gap="xl">
-              <SimpleGrid cols={{ base: 1, sm: 3 }}>
-                <Select
-                  label={t('profiles.template')} placeholder={t('profiles.chooseTemplate')} searchable clearable
-                  data={assets.templates.map((item) => ({ value: item.path, label: basename(item.path) }))}
-                  value={form.values.templateUrl || null}
-                  error={form.errors.templateUrl}
-                  onChange={(value) => form.setFieldValue('templateUrl', value ?? '')}
-                />
-                <Select
-                  label={t('profiles.adapter')} placeholder={t('profiles.none')} searchable clearable
-                  data={assets.adapters.map((item) => ({ value: item.path, label: basename(item.path) }))}
-                  value={form.values.adapterUrl || null}
-                  error={form.errors.adapterUrl}
-                  onChange={(value) => form.setFieldValue('adapterUrl', value ?? '')}
-                />
-                <Select
-                  label={t('profiles.nodeSet')} placeholder={t('profiles.chooseNodeSet')} searchable clearable
-                  data={assets.nodes.map((item) => ({ value: item.path, label: basename(item.path) }))}
-                  value={form.values.nodesPath || null}
-                  error={form.errors.nodesPath}
-                  onChange={(value) => form.setFieldValue('nodesPath', value ?? '')}
-                />
-              </SimpleGrid>
+            <ScrollArea
+              h="50dvh" type="auto" scrollbars="y" offsetScrollbars="y"
+              viewportProps={{ 'aria-label': t('profiles.editorContent') }}
+            >
+              <Stack gap="xl" pe="xs">
+                <SimpleGrid cols={{ base: 1, sm: 3 }}>
+                  <Select
+                    label={t('profiles.template')} placeholder={t('profiles.chooseTemplate')} searchable clearable
+                    data={assets.templates.map((item) => ({ value: item.path, label: basename(item.path) }))}
+                    value={form.values.templateUrl || null}
+                    error={form.errors.templateUrl}
+                    onChange={(value) => form.setFieldValue('templateUrl', value ?? '')}
+                  />
+                  <Select
+                    label={t('profiles.adapter')} placeholder={t('profiles.none')} searchable clearable
+                    data={assets.adapters.map((item) => ({ value: item.path, label: basename(item.path) }))}
+                    value={form.values.adapterUrl || null}
+                    error={form.errors.adapterUrl}
+                    onChange={(value) => form.setFieldValue('adapterUrl', value ?? '')}
+                  />
+                  <Select
+                    label={t('profiles.nodeSet')} placeholder={t('profiles.chooseNodeSet')} searchable clearable
+                    data={assets.nodes.map((item) => ({ value: item.path, label: basename(item.path) }))}
+                    value={form.values.nodesPath || null}
+                    error={form.errors.nodesPath}
+                    onChange={(value) => form.setFieldValue('nodesPath', value ?? '')}
+                  />
+                </SimpleGrid>
 
               <Stack gap="sm">
                 <Title order={3}>{t('profiles.inbounds')}</Title>
@@ -397,12 +415,17 @@ function ProfileEditorModal({
                   );
                 })}
               </Stack>
-            </Stack>
+              </Stack>
+            </ScrollArea>
           )}
 
           <Group justify="flex-end">
-            <Button variant="subtle" onClick={requestClose}>{t('common.cancel')}</Button>
-            <Button type="submit" leftSection={<Save size={17} />} loading={saving}>{t('common.save')}</Button>
+            <Button type="button" variant="subtle" onClick={requestClose}>
+              {t(mode === 'preview' ? 'common.done' : 'common.cancel')}
+            </Button>
+            {mode === 'edit' && (
+              <Button type="submit" leftSection={<Save size={17} />} loading={saving}>{t('common.save')}</Button>
+            )}
           </Group>
         </Stack>
       </form>
@@ -446,7 +469,7 @@ function SortableProfileCard({
           </Tooltip>
           <Stack gap={4} miw={0} flex={1}>
             <Text fw={700} size="lg" truncate>{profile.name}</Text>
-            <Text size="sm" c="dimmed" truncate>{profile.note || t('profiles.noNote')}</Text>
+            <Text size="sm" c="dimmed" truncate>{profile.note || t('common.noNote')}</Text>
           </Stack>
           <Group gap={4} wrap="nowrap" pos="relative" style={{ zIndex: 2 }}>
             <Tooltip label={t('common.edit')}>

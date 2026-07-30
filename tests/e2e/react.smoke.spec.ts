@@ -277,6 +277,13 @@ test('React entry initializes with a password-only request and guarded route', a
   const state = await mockReactApi(page);
   await login(page, state);
   await expect(page.getByRole('navigation', { name: '主导航' })).toBeAttached();
+  const brandIcon = page.getByTestId('app-brand-icon');
+  await expect(brandIcon).toBeVisible();
+  await expect(brandIcon).toHaveAttribute('src', '/favicon.svg');
+  const brandIconBox = await brandIcon.boundingBox();
+  expect(brandIconBox).not.toBeNull();
+  expect(brandIconBox!.width).toBe(36);
+  expect(brandIconBox!.height).toBe(36);
 });
 
 test('React entry persists language and color scheme with native Mantine controls', async ({ page }) => {
@@ -446,6 +453,27 @@ test('React resources create a JSON asset through the lazy CodeMirror modal', as
 
   const assetCard = page.getByRole('article', { name: 'edge-nodes', exact: true });
   await expect(assetCard.getByText('NODE', { exact: true })).toHaveCount(0);
+  await assetCard.getByRole('button', { name: '预览 edge-nodes', exact: true }).press('Enter');
+  await expect(page.getByRole('dialog').getByText('"inbounds": []', { exact: false })).toBeVisible();
+  const modeGeometry = await page.getByTestId('resource-mode-control').evaluate((root) => {
+    const checked = root.querySelector<HTMLInputElement>('input[type="radio"]:checked');
+    const label = checked ? root.querySelector<HTMLLabelElement>(`label[for="${checked.id}"]`) : null;
+    const indicator = [...root.children].find((child) => getComputedStyle(child).position === 'absolute');
+    if (!label || !indicator) return null;
+    const labelRect = label.getBoundingClientRect();
+    const indicatorRect = indicator.getBoundingClientRect();
+    return {
+      labelX: labelRect.x,
+      labelWidth: labelRect.width,
+      indicatorX: indicatorRect.x,
+      indicatorWidth: indicatorRect.width,
+    };
+  });
+  expect(modeGeometry).not.toBeNull();
+  expect(Math.abs(modeGeometry!.indicatorX - modeGeometry!.labelX)).toBeLessThanOrEqual(1);
+  expect(Math.abs(modeGeometry!.indicatorWidth - modeGeometry!.labelWidth)).toBeLessThanOrEqual(1);
+  await page.getByRole('dialog').getByRole('button', { name: '关闭', exact: true }).click();
+
   await page.setViewportSize({ width: 320, height: 900 });
   await expect.poll(() => page.evaluate(() => (
     document.documentElement.scrollWidth - document.documentElement.clientWidth

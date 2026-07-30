@@ -326,7 +326,7 @@ export function ResourcesPage({ type }: { type: ResourceType }) {
       <Modal
         opened={Boolean(editor)} onClose={requestClose}
         title={t(editor?.file.isNew ? 'assets.newFile' : titleKeyByType[type])}
-        size="xl" fullScreen={mobile} transitionProps={{ transition: mobile ? 'fade' : 'pop' }}
+        size="xl" fullScreen={mobile} transitionProps={{ transition: 'fade', duration: 120 }}
         closeOnClickOutside={false}
         closeButtonProps={{ 'aria-label': t('common.close') }}
       >
@@ -336,7 +336,12 @@ export function ResourcesPage({ type }: { type: ResourceType }) {
               <TextInput label={t('assets.fileName')} value={editor.name} error={editor.name && !/^[a-zA-Z0-9][a-zA-Z0-9._-]*$/.test(editor.name) ? t('assets.invalidName') : null} onChange={(event) => setEditor({ ...editor, name: event.currentTarget.value })} />
               <TextInput label={t('common.note')} value={editor.note} onChange={(event) => setEditor({ ...editor, note: event.currentTarget.value })} />
             </Group>
-            <SegmentedControl value={editor.mode} onChange={(mode) => setEditor({ ...editor, mode: mode as 'edit' | 'preview' })} data={[{ value: 'edit', label: t('common.edit') }, { value: 'preview', label: t('common.preview') }]} />
+            <SegmentedControl
+              fullWidth data-testid="resource-mode-control"
+              value={editor.mode}
+              onChange={(mode) => setEditor({ ...editor, mode: mode as 'edit' | 'preview' })}
+              data={[{ value: 'edit', label: t('common.edit') }, { value: 'preview', label: t('common.preview') }]}
+            />
             {editor.mode === 'edit' && type === 'ruleset' ? (
               editor.content ? (
                 <ScrollArea h="52dvh" type="auto">

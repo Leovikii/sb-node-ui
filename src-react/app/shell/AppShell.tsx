@@ -5,6 +5,7 @@ import {
   Burger,
   Divider,
   Group,
+  Image,
   NavLink,
   ScrollArea,
   Stack,
@@ -105,6 +106,7 @@ export function AppShell() {
               size="sm"
               aria-label={t(opened ? 'nav.closeMenu' : 'nav.openMenu')}
             />
+            <Image src="/favicon.svg" alt="" w={36} h={36} fit="contain" data-testid="app-brand-icon" />
             <Text fw={700}>{t('common.appName')}</Text>
           </Group>
           <Group gap="xs">

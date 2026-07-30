@@ -22,6 +22,7 @@
 | FE-3150 | DONE | 完整桌面、移动端、双语、Firefox 与键盘回归 |
 | FE-3151 | IN_PROGRESS | 包体积、首帧与性能验收 |
 | FE-3154 | DONE | 卡片整面预览交互、Profile 拖曳层级与资源移动端布局优化 |
+| FE-3155 | DONE | 资源预览切换控件首帧修复与 AppShell 品牌图标 |
 | FE-3152–FE-3153 | TODO | 生产入口切换、Vue 清理与 3.1 发布收束 |
 
 状态只能使用 `TODO`、`IN_PROGRESS`、`DONE`、`BLOCKED`。只有验收条件全部满足时标记 `DONE`。
@@ -116,6 +117,16 @@
 - 包体积：React 主入口 90.87 kB gzip，较前一基线增加约 0.01 kB；未增加依赖或自定义动画。
 - 遗留风险：Firefox 在受限执行环境内仍会在 `browserContext.newPage()` 命中已知 `_page` 启动错误，脱离该限制后两项均通过；FE-3151 的 DevTools 性能审计与 Worker dry-run 仍未完成。
 - 下一任务：继续 FE-3151 性能与 dry-run 门槛，或按用户反馈继续 UI 边界审查。
+
+### 2026-07-30：FE-3155 资源切换控件与品牌图标
+
+- 完成内容：资源编辑器的 `SegmentedControl` 显式启用 `fullWidth`；资源 Modal 统一改用 Mantine 原生 120 ms `fade`，避免桌面 `pop` 缩放首帧导致 FloatingIndicator 保留错误测量。AppShell 标题左侧使用 Mantine `Image` 嵌入仓库现有 `/favicon.svg`，固定为 36×36 px。
+- 设计确认：移动端资源与 Profile 编辑器继续使用 Mantine `fullScreen` Modal。两者都包含长表单、代码/预览滚动区并可在预览和编辑间切换，全屏可避免软键盘与嵌套滚动压缩内容，当前无需改为普通弹窗。
+- 验证：真实后端资源预览中，活动指示器与已选“预览”标签的 x 坐标和宽度误差均为 0 px；品牌图标实际尺寸为 36×36 px。lint、许可证门禁、四套 typecheck、115 unit、66 integration、production build、Chromium 桌面/移动 46 项及受限环境外 Firefox 2 项 E2E 通过。
+- 回归测试：新增品牌图标来源/尺寸断言，以及桌面 Modal 稳定后 FloatingIndicator 与 checked radio label 的位置、宽度误差不超过 1 px 的布局契约。
+- 包体积：React 主入口为 91.11 kB gzip，较 FE-3154 基线增加约 0.24 kB；未新增依赖、自定义动画或图像资产。
+- 遗留风险：Firefox 受限环境启动问题及 FE-3151 的 DevTools 性能审计、Worker dry-run 状态不变。
+- 下一任务：继续按用户反馈做 UI 边界审查，或完成 FE-3151 剩余门槛。
 
 ## 完成记录模板
 

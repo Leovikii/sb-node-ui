@@ -1,22 +1,20 @@
-# Sing-Sub 文档
+# Sing-Sub 用户与运维文档
+
+本入口只面向使用、部署与维护 Sing-Sub 的用户，不包含 AI Agent 的开发提示、内部任务台账或会话日志。
 
 ## 用户指南
 
 - [Wiki 首页](./wiki/HomeZH.md)
 - [Cloudflare 部署](./wiki/DeploymentZH.md)
 - [适配器使用](./wiki/AdaptersZH.md)
+- [v3.1.0-beta.1 测试版说明](./wiki/Release-3.1.0-beta.1.md)
+- [English Wiki](./wiki/Home.md)
 
-## 重构
+## 运维指南
 
-完整重构计划、架构标准和进度追踪入口：
-
-- [重构计划总览](./refactor/README.md)
-- [数据与外部集成架构](./refactor/data-architecture.md)
-- [当前进度](./refactor/progress.md)
-- [架构决策](./refactor/decisions.md)
-- [R2 主存储迁移](./operations/r2-migration.md)
+- [Cloudflare 部署、更新与恢复](./operations/release-and-recovery.md)
 - [GitHub 可编辑同步](./operations/github-sync.md)
 - [SRS 编译器](./operations/srs-compiler.md)
-- [Cloudflare 部署、更新与恢复](./operations/release-and-recovery.md)
+- [历史 R2 迁移说明](./operations/r2-migration.md)
 
-后续架构任务开始前，请先阅读重构总览、架构决策和当前进度，并在任务结束后更新进度台账。
+公开 Wiki 的源文件位于 `docs/wiki`。修改用户可见行为时，应同步更新中英文内容。

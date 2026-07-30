@@ -37,3 +37,6 @@ dist-ssr
 .claude
 test-results
 playwright-report
+
+# Local upstream documentation used by AI agents
+/docs/agent/vendor/mantine-llms-full.txt

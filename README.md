@@ -6,7 +6,7 @@
 
 Sing-Sub is a self-hosted control plane for editing and distributing [sing-box](https://sing-box.sagernet.org/) configurations.
 
-Version: `v3.0.0`
+Version: [`v3.1.0-beta.1`](docs/wiki/Release-3.1.0-beta.1.en.md) (beta; `v3.0.0` remains the rollback baseline)
 
 ## Features
 
@@ -33,7 +33,7 @@ See the [complete deployment guide](https://github.com/Leovikii/Sing-Sub/wiki/De
 
 ## Technology
 
-- Vue 3, PrimeVue, Pinia, Vue Router, and Vue I18n
+- React 19, Mantine 9, React Router, Zustand, and react-i18next
 - TypeScript, Vite, CodeMirror, and Zod
 - Cloudflare Workers, Static Assets, Cache API, and R2
 - Vitest and Playwright
@@ -47,7 +47,7 @@ npm run verify
 npm run worker:dry-run
 ```
 
-Architecture decisions and release history are tracked in [docs/refactor](docs/refactor/README.md). Operational guides are indexed in [docs](docs/README.md).
+User and operator documentation is indexed in [docs](docs/README.md).
 
 ## License
 

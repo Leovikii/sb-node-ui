@@ -6,7 +6,7 @@
 
 Sing-Sub 是一个用于编辑和分发 [sing-box](https://sing-box.sagernet.org/) 配置的自托管控制台。
 
-版本：`v3.0.0`
+版本：[`v3.1.0-beta.1`](docs/wiki/Release-3.1.0-beta.1.md)（测试版；`v3.0.0` 保留为回滚基线）
 
 ## 功能特色
 
@@ -33,7 +33,7 @@ Sing-Sub 是一个用于编辑和分发 [sing-box](https://sing-box.sagernet.org
 
 ## 技术栈
 
-- Vue 3、PrimeVue、Pinia、Vue Router、Vue I18n
+- React 19、Mantine 9、React Router、Zustand、react-i18next
 - TypeScript、Vite、CodeMirror、Zod
 - Cloudflare Workers、Static Assets、Cache API、R2
 - Vitest、Playwright
@@ -47,7 +47,7 @@ npm run verify
 npm run worker:dry-run
 ```
 
-架构决策与发布进度见 [docs/refactor](docs/refactor/README.md)，运维文档见 [docs](docs/README.md)。
+用户与运维文档统一见 [docs](docs/README.md)。
 
 ## 许可证
 

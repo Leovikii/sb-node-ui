@@ -1,6 +1,15 @@
 import type { ApiFailure, ApiSuccess } from '../../shared/contracts/api';
 import { API_ERROR_CODES, type ApiErrorCode } from '../../shared/contracts/errors';
 
+type UnauthorizedHandler = () => void;
+
+const unauthorizedHandlers = new Set<UnauthorizedHandler>();
+
+export function onApiUnauthorized(handler: UnauthorizedHandler): () => void {
+  unauthorizedHandlers.add(handler);
+  return () => unauthorizedHandlers.delete(handler);
+}
+
 export class ApiClientError extends Error {
   readonly status: number;
   readonly code: ApiErrorCode;
@@ -40,6 +49,9 @@ export async function apiRequest<T>(path: string, options: RequestInit = {}): Pr
   const payload = await response.json().catch(() => null) as unknown;
 
   if (!response.ok) {
+    if (response.status === 401) {
+      for (const handler of unauthorizedHandlers) handler();
+    }
     if (isFailure(payload)) {
       const message = typeof payload.error.details?.message === 'string'
         ? payload.error.details.message

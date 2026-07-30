@@ -23,6 +23,7 @@
 | ADR-050 | ACCEPTED | 3.1 前端迁移到 React 19 + Mantine 9。 |
 | ADR-051 | ACCEPTED | UI 依赖必须无商业资格门槛、许可证密钥和续期要求。 |
 | ADR-052 | ACCEPTED | 迁移采用短期双构建、单生产入口；不在运行时桥接 Vue 与 React。 |
+| ADR-053 | ACCEPTED | `3.1.0-beta.1` 切换默认入口到 React，并删除已无调用方的 Vue 迁移栈；`3.0.0` 保留为代码回滚基线。 |
 
 ## ADR-050：React 19 + Mantine 9
 
@@ -41,4 +42,12 @@ PrimeVue 5 的发布包采用带资格门槛、年度确认和许可证密钥的
 迁移期保留 Vue `index.html` 作为唯一生产入口，新增 `react.html` 供本地和 CI 验证。React 页面按 feature 完成，但不把 React mount 到 Vue 组件，也不让两个 router 共同控制同一页面。达到验收门槛后一次切换默认入口并删除旧栈。
 
 该模式是 ADR-012 的受控例外：新入口必须持续构建和运行 E2E，任务台账必须给出明确退出条件，禁止演变为长期双前端。
+
+## ADR-053：3.1 Beta 生产候选与旧前端退场
+
+产品负责人确认 `3.1.0-beta.1` 作为 React/Mantine 测试版生产候选。默认 `index.html` 切换到 React；迁移期 `react.html`、旧 Vue 页面、旧 Vue E2E、PrimeVue/Pinia/Vue Router/Vue I18n/Tailwind/vuedraggable 依赖在同一变更中删除，避免测试版继续携带两套前端。
+
+`3.0.0` 只作为已发布代码与 Worker version 的回滚基线，不作为当前测试版 UI 的运行时兼容层。本决策不授权部署、推送、打 tag、发布 GitHub Release、修改 R2 或轮换 Secret；这些仍需用户对具体操作的明确请求。
+
+Beta 切换是对正式版总包体积门槛的有限例外：首屏、功能回归、许可证和 Worker dry-run 必须通过，但 `FE-3151` 在全量客户端 JS 达到预算或另行批准预算前保持 `IN_PROGRESS`。测试版不得因此被标记为稳定版。
 

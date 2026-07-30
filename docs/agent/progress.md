@@ -1,9 +1,9 @@
 # v3.1.0 进度
 
 更新日期：2026-07-30  
-当前稳定版：`3.0.0`  
-目标版：`3.1.0`  
-状态：React/Mantine 迁移已启动，生产入口仍为 Vue。
+回滚基线：`3.0.0`
+当前候选：`3.1.0-beta.1`
+状态：React/Mantine Beta 生产候选已准备完成，尚未部署、推送、打 tag 或发布。
 
 ## 任务台账
 
@@ -24,15 +24,16 @@
 | FE-3154 | DONE | 卡片整面预览交互、Profile 拖曳层级与资源移动端布局优化 |
 | FE-3155 | DONE | 资源预览切换控件首帧修复与 AppShell 品牌图标 |
 | FE-3156 | DONE | Profile 筛选节点协议标签与移动端排版 |
-| FE-3152–FE-3153 | TODO | 生产入口切换、Vue 清理与 3.1 发布收束 |
+| FE-3152 | DONE | 默认入口切换 React 与 Vue 迁移栈清理 |
+| FE-3153 | DONE | `3.1.0-beta.1` 版本、公开文档与发布说明收束 |
 
 状态只能使用 `TODO`、`IN_PROGRESS`、`DONE`、`BLOCKED`。只有验收条件全部满足时标记 `DONE`。
 
 ## 当前验证基线
 
-- 3.0 源码：43 个前端 TS/Vue/CSS 文件，约 5,741 行；其中 25 个 Vue 文件约 4,407 行。
-- 专业依赖：CodeMirror、Lucide、vuedraggable 保留对应能力，React 侧分别使用 CodeMirror、Lucide React、dnd-kit。
-- E2E：Vue 与 React 双入口共 24 个 Playwright 场景；Chromium 桌面/移动共 48 次执行通过，React 11 个场景在两端共 22 次执行通过；另有 Firefox 2 次专项通过。布局测试已改用 role/label 或稳定 test id，不再依赖 PrimeVue/Mantine 私有 class。
+- 生产前端：`index.html` 唯一入口挂载 React；Vue、PrimeVue、Pinia、Vue Router、Vue I18n、Tailwind、vuedraggable、旧 `.vue` 与迁移期 `react.html` 已清理。
+- 专业依赖：CodeMirror、Lucide React 与 dnd-kit 分别保留代码编辑、图标和 Profile 排序能力。
+- E2E：React 单入口共 11 个 Playwright 场景；Chromium 桌面/移动共 22 次执行通过，另有 Firefox 2 次专项通过。布局测试使用 role/label 或稳定 test id，不依赖 Mantine 私有 class。
 - Worker/shared/backend 不在 3.1 迁移范围。
 
 ## 会话记录
@@ -138,6 +139,16 @@
 - 包体积：React 主入口保持 91.11 kB gzip；Profile feature chunk 为 21.64 kB gzip。未新增依赖、通用包装组件或自定义标签动画。
 - 遗留风险：真实后端节点名称取决于用户数据，浏览器的 localhost URL 安全策略阻止了本轮连接失败后的可视化复核；响应式布局与真实 Chromium 渲染已由 Playwright 覆盖。Firefox 受限环境启动问题及 FE-3151 的 DevTools 性能审计、Worker dry-run 状态不变。
 - 下一任务：继续按用户反馈检查真实数据下的视觉密度，或完成 FE-3151 剩余门槛。
+
+### 2026-07-30：FE-3152/FE-3153 3.1 Beta 单入口收束
+
+- 完成内容：版本更新为 `3.1.0-beta.1`，`index.html` 改为唯一 React 入口；删除迁移期 `react.html`、旧 Vue 源码、旧 Vue E2E、未引用的 MigrationPage 和 Vue tsconfig。package/lockfile 移除 Vue、PrimeVue、PrimeUI、Pinia、Vue Router、Vue I18n、Tailwind、vuedraggable、Lucide Vue 与对应 Vite/ESLint 工具。
+- 文档：README、Wiki、部署恢复说明、Agent 架构/ADR/计划/依赖基线均已同步；新增中英文 Beta 发布说明，明确测试版身份、`v3.0.0` 回滚基线、无数据迁移及不轮换 Secret。
+- 验证：干净 `npm ci`、lint、许可证门禁、shared/web/worker typecheck、115 unit、66 integration、production build 通过；React Chromium 桌面/移动各 11 项、Firefox 2 项 E2E 通过。`npm run worker:dry-run` 在受限环境外成功读取 55 个静态文件，上传预览 750.02 KiB / gzip 122.23 KiB，识别 `WORKSPACE_BUCKET` 后以 dry-run 退出。
+- 依赖审计：生产依赖 audit 的 2 个 high 均为 React Router RSC Mode CSRF 同一通告；项目没有 RSC/server action，攻击路径不可达且上游暂无修复。包含开发工具的 audit 共 24 个 high，已在依赖基线记录来源，不执行强制 audit fix。
+- 性能：Beta 首屏静态 JS 为 219.72 kB gzip，较 `v3.0.0` 的 248.53 kB 下降 11.6%；全部 feature 与 CodeMirror 均加载时为 394.46 kB，较 3.0 增加 58.7%，未达到正式版总 JS 预算。因此 FE-3151 保持 `IN_PROGRESS`，Beta 依据 ADR-053 作为有限例外测试。
+- 遗留风险：尚未执行 git push、tag、GitHub Release 或生产部署。用户部署后仍需在真实生产入口复核登录、写操作、订阅、GitHub sync 与 SRS；正式 `3.1.0` 前需继续收束全量 JS 体积或明确修订预算。
+- 下一任务：用户推送 Beta 后进行实际生产冒烟测试；随后完成 FE-3151 并决定正式版门槛。
 
 ## 完成记录模板
 

@@ -20,7 +20,7 @@ R2 current ruleset source
 
 ## 自动启用
 
-SRS 启用不是首次部署、GitHub connect 或 sync enable 的必填步骤。用户可先只使用 R2 + JSON ruleset，随后通过 authenticated `GET/PUT /api/srs-compiler` 显式读取或修改状态。PrimeVue WebUI 开关在 Phase 6/7 接入同一 typed API。
+SRS 启用不是首次部署、GitHub connect 或 sync enable 的必填步骤。用户可先只使用 R2 + JSON ruleset，随后通过 WebUI 或 authenticated `GET/PUT /api/srs-compiler` 显式读取或修改状态。
 
 Worker 自动执行以下 provisioning：
 

@@ -33,6 +33,9 @@ export default {
     discard: '放弃修改',
     unsavedTitle: '未保存的修改',
     unsavedMessage: '关闭将丢失未保存的修改。',
+    switchLanguage: '切换语言',
+    switchTheme: '切换颜色模式',
+    releaseLabel: 'v3.1.0-beta.1 测试版',
   },
   auth: {
     setupTitle: '初始化工作区',
@@ -243,16 +246,5 @@ export default {
   errors: {
     generic: '操作失败，请稍后重试。',
     unauthorized: '登录已失效，请重新登录。',
-  },
-  migration: {
-    badge: 'v3.1.0 迁移预览',
-    title: 'React + Mantine 前端已开始搭建',
-    description: '当前页面是独立迁移入口。Vue 仍是唯一生产入口，业务数据和 Worker API 没有改变。',
-    pagePending: '此功能将在后续迁移阶段接入。',
-    stackTitle: '已建立的平台基础',
-    stack: 'Mantine Provider、主题、通知、模态框、React Router 与双语资源',
-    productionSafe: '生产入口未切换',
-    switchTheme: '切换颜色模式',
-    switchLanguage: '切换语言',
   },
 };

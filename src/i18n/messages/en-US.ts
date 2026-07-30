@@ -33,6 +33,9 @@ export default {
     discard: 'Discard changes',
     unsavedTitle: 'Unsaved changes',
     unsavedMessage: 'Closing discards unsaved changes.',
+    switchLanguage: 'Switch language',
+    switchTheme: 'Switch color scheme',
+    releaseLabel: 'v3.1.0-beta.1 beta',
   },
   auth: {
     setupTitle: 'Initialize workspace',
@@ -243,16 +246,5 @@ export default {
   errors: {
     generic: 'The operation failed. Try again shortly.',
     unauthorized: 'Your session expired. Sign in again.',
-  },
-  migration: {
-    badge: 'v3.1.0 migration preview',
-    title: 'The React + Mantine frontend is underway',
-    description: 'This is an isolated migration entry. Vue remains the only production entry and Worker APIs are unchanged.',
-    pagePending: 'This feature will be connected in a later migration phase.',
-    stackTitle: 'Platform foundation in place',
-    stack: 'Mantine providers, theme, notifications, modals, React Router, and bilingual resources',
-    productionSafe: 'Production entry unchanged',
-    switchTheme: 'Switch color scheme',
-    switchLanguage: 'Switch language',
   },
 };

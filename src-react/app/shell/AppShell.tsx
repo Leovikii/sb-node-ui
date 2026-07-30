@@ -110,21 +110,21 @@ export function AppShell() {
             <Text fw={700}>{t('common.appName')}</Text>
           </Group>
           <Group gap="xs">
-            <Tooltip label={t('migration.switchLanguage')}>
+            <Tooltip label={t('common.switchLanguage')}>
               <ActionIcon
                 variant="subtle"
                 size="lg"
-                aria-label={t('migration.switchLanguage')}
+                aria-label={t('common.switchLanguage')}
                 onClick={toggleLanguage}
               >
                 <Languages size={19} />
               </ActionIcon>
             </Tooltip>
-            <Tooltip label={t('migration.switchTheme')}>
+            <Tooltip label={t('common.switchTheme')}>
               <ActionIcon
                 variant="subtle"
                 size="lg"
-                aria-label={t('migration.switchTheme')}
+                aria-label={t('common.switchTheme')}
                 onClick={() => setColorScheme(dark ? 'light' : 'dark')}
               >
                 {dark ? <Sun size={19} /> : <Moon size={19} />}
@@ -171,7 +171,7 @@ export function AppShell() {
         <Divider my="sm" />
         <MantineAppShell.Section>
           <Text c="dimmed" size="xs" px="sm">
-            {t('migration.productionSafe')}
+            {t('common.releaseLabel')}
           </Text>
         </MantineAppShell.Section>
       </MantineAppShell.Navbar>

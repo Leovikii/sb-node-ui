@@ -6,7 +6,7 @@ The public README and `docs/wiki` are user documentation. Do not use them as the
 
 Long-lived rules:
 
-- `3.0.0` remains the stable release while the `3.1.0` React/Mantine migration is in progress.
+- `3.0.0` is the rollback baseline; `3.1.0-beta.1` is the React/Mantine production test candidate. Do not present a prerelease as a stable release.
 - Do not deploy production, rotate secrets, alter R2 data, or publish a release unless the user explicitly requests it.
 - Browser code uses the typed client in `src/api`; features must not call Worker storage or GitHub directly.
 - Keep Worker, shared-contract, revision, sync, and SRS semantics unchanged during the frontend migration.

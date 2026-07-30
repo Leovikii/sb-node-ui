@@ -66,16 +66,16 @@ export function ConnectPage() {
   return (
     <>
       <Group justify="flex-end" p="md">
-        <Tooltip label={t('migration.switchLanguage')}>
-          <ActionIcon variant="subtle" size="lg" aria-label={t('migration.switchLanguage')} onClick={toggleLanguage}>
+        <Tooltip label={t('common.switchLanguage')}>
+          <ActionIcon variant="subtle" size="lg" aria-label={t('common.switchLanguage')} onClick={toggleLanguage}>
             <Languages size={19} />
           </ActionIcon>
         </Tooltip>
-        <Tooltip label={t('migration.switchTheme')}>
+        <Tooltip label={t('common.switchTheme')}>
           <ActionIcon
             variant="subtle"
             size="lg"
-            aria-label={t('migration.switchTheme')}
+            aria-label={t('common.switchTheme')}
             onClick={() => setColorScheme(dark ? 'light' : 'dark')}
           >
             {dark ? <Sun size={19} /> : <Moon size={19} />}

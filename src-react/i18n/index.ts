@@ -11,7 +11,7 @@ void i18n.use(initReactI18next).init({
   },
   lng: resolveInitialLocale(localStorage.getItem('sing-sub.locale'), navigator.language),
   fallbackLng: 'zh-CN',
-  // Shared catalogs use Vue I18n's single-brace placeholders. Configure
+  // Shared catalogs use single-brace placeholders. Configure
   // i18next to preserve that syntax while the two frontends coexist.
   interpolation: { escapeValue: false, prefix: '{', suffix: '}' },
 });

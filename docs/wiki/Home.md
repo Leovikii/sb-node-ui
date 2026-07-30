@@ -12,4 +12,4 @@ Sing Sub is a self-hosted control plane for editing and distributing sing-box co
 - [GitHub synchronization](https://github.com/Leovikii/Sing-Sub/blob/main/docs/operations/github-sync.md)
 - [SRS compiler](https://github.com/Leovikii/Sing-Sub/blob/main/docs/operations/srs-compiler.md)
 
-Current stable version: `v3.0.0`.
+Current beta: [`v3.1.0-beta.1`](Release-3.1.0-beta.1.en). The previous stable `v3.0.0` remains the rollback baseline during beta validation.

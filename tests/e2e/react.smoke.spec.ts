@@ -262,14 +262,14 @@ async function mockReactApi(page: Page, setupRequired = true): Promise<ReactApiM
 }
 
 async function login(page: Page, state: ReactApiMock) {
-  await page.goto('/react.html');
+  await page.goto('/');
   await expect(page.getByRole('heading', { name: '初始化工作区' })).toBeVisible();
   await page.getByRole('textbox', { name: '管理员口令', exact: true }).fill('test-admin-password');
   await page.getByRole('button', { name: '初始化', exact: true }).click();
 
   await expect.poll(() => state.loginRequests.length).toBe(1);
   expect(state.loginRequests[0].postDataJSON()).toEqual({ adminPassword: 'test-admin-password' });
-  await expect(page).toHaveURL(/react\.html#\/profiles$/);
+  await expect(page).toHaveURL(/\/#\/profiles$/);
   await expect(page.getByRole('heading', { name: '配置', exact: true })).toBeVisible();
 }
 
@@ -284,11 +284,13 @@ test('React entry initializes with a password-only request and guarded route', a
   expect(brandIconBox).not.toBeNull();
   expect(brandIconBox!.width).toBe(36);
   expect(brandIconBox!.height).toBe(36);
+  await page.goto('/#/settings/about');
+  await expect(page.getByText('v3.1.0-beta.1', { exact: true })).toBeVisible();
 });
 
 test('React entry persists language and color scheme with native Mantine controls', async ({ page }) => {
   await mockReactApi(page, false);
-  await page.goto('/react.html#/connect');
+  await page.goto('/#/connect');
 
   await page.getByRole('button', { name: '切换颜色模式', exact: true }).click();
   await expect(page.locator('html')).toHaveAttribute('data-mantine-color-scheme', 'dark');
@@ -347,7 +349,7 @@ test('React entry opens mobile navigation and confirms sign out', async ({ page 
 
   await expect.poll(() => state.logoutRequests.length).toBe(1);
   await expect(page.getByRole('heading', { name: '管理员登录' })).toBeVisible();
-  await expect(page).toHaveURL(/react\.html#\/connect$/);
+  await expect(page).toHaveURL(/\/#\/connect$/);
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(390);
 });
 

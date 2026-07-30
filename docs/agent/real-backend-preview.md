@@ -1,10 +1,10 @@
 # 真实后端本地预览
 
-使用当前工作区的 React 源码连接 `https://ss.vkio.org`，无需部署迁移中的前端：
+使用当前工作区的 React 源码连接 `https://ss.vkio.org`，无需部署本地修改：
 
 ```text
 npm run dev:real-backend
-http://127.0.0.1:8787/react#/connect
+http://127.0.0.1:8787/#/connect
 ```
 
 该入口只监听 `127.0.0.1`，固定代理到正式后端，不接受可配置的任意上游。管理员口令由用户直接输入浏览器，不写入仓库、命令行或日志。

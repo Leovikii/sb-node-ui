@@ -75,4 +75,4 @@ POST   /api/github-sync/push
 POST   /api/github-sync/pull
 ```
 
-所有接口要求管理员 signed Cookie。Phase 5 已提供 typed API client；PrimeVue 页面和双语文案在 Phase 6/7 接入，不在后端阶段临时扩展旧 UI。
+所有接口要求管理员 signed Cookie。浏览器通过 framework-neutral typed API client 调用这些接口，不直接接触 GitHub credential 或存储实现。

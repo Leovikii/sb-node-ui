@@ -1,7 +1,7 @@
 # v3.1 前端依赖与包体积基线
 
 记录日期：2026-07-30  
-基线提交状态：React 独立入口已建立，Vue 仍是唯一生产入口。
+当前状态：`v3.1.0-beta.1` 已切换为 React 单入口；本文件保留迁移初始数据用于同口径比较。
 
 ## 依赖许可
 
@@ -13,15 +13,14 @@
 
 | 许可证 | 包数量 |
 |---|---:|
-| MIT | 116 |
-| BSD-2-Clause | 1 |
-| BSD-3-Clause | 3 |
-| ISC | 3 |
+| MIT | 68 |
+| BSD-3-Clause | 1 |
+| ISC | 1 |
 | 0BSD | 1 |
 | Apache-2.0 | 1 |
 | MIT OR CC0-1.0 | 1 |
 
-PrimeVue 4 只在旧 Vue 入口迁移期保留，其锁定版本为 MIT；禁止升级到 PrimeVue 5。
+PrimeVue 4 仅在旧 Vue 入口迁移期使用；`v3.1.0-beta.1` 的 manifest 与 lockfile 已不包含 PrimeVue、PrimeUI、Vue、Pinia 或 Tailwind。PrimeVue 5 仍禁止引入。
 
 ## 构建基线
 
@@ -50,6 +49,21 @@ React 当前只是未做拆分的平台骨架，gzip JS 比 Vue 入口高约 22%
 
 主入口单文件已较未拆分状态下降约 65%，Profile、Resources 与 CodeMirror 均不会在认证首屏执行。最终 FE-3151 仍需以浏览器网络依赖链计算真实首屏传输量，不能只相加构建清单或只看入口单文件。
 
-## 已知安全审计状态
+## Beta 单入口验收
 
-依赖安装阶段 npm 报告 7 个 high severity 项。进一步的 `npm audit` 会向 npm 发送项目依赖清单，本次执行环境未获外发许可，因此尚未取得漏洞归因；不能据此判断问题来自生产依赖或新增 React 栈。获得明确授权后再运行只读审计并记录包名、影响路径和处置结论，禁止直接执行 `npm audit fix --force`。
+使用 `v3.0.0` tag 与当前 `v3.1.0-beta.1` 分别执行干净 `npm ci` 和 production build：
+
+| 指标 | v3.0.0 | v3.1.0-beta.1 | 变化 |
+|---|---:|---:|---:|
+| 首屏静态 JS gzip | 248.53 kB | 219.72 kB | -11.6% |
+| 全部客户端 JS gzip | 248.53 kB | 394.46 kB | +58.7% |
+| 全部客户端 JS 原始大小 | 735.72 kB | 1,220.19 kB | +65.8% |
+| 入口 CSS gzip | 8.91 kB | 33.90 kB | +280.5% |
+
+Beta 首屏通过原计划“不高于 3.0 入口 10%”的门槛，并通过路由与 CodeMirror lazy 验证；全量加载所有 feature 后的 JS 未达到“总量增幅不超过 15%”的正式版门槛。`FE-3151` 因此继续为 `IN_PROGRESS`，Beta 发布说明必须保留该已知体积风险，正式版前继续评估 Mantine/CodeMirror 与 feature chunk 成本。
+
+## 安全审计状态
+
+干净安装后 `npm audit --omit=dev` 报告 2 个 high，均来自 `react-router-dom -> react-router` 的同一项 RSC Mode CSRF 通告。本项目仅使用浏览器端 `createHashRouter`，没有 React Server Components、server action 或 RSC endpoint，通告描述的攻击路径不可达；当前上游没有可用修复版本。
+
+包含开发依赖的 audit 报告 24 个 high，来源包括 Vite/PostCSS、ESLint/minimatch、Vitest、Wrangler/Miniflare/Sharp 及上述 React Router 通告。它们不进入 Worker 静态资源运行时，但 CI 与本地工具链仍需随上游修复持续升级。禁止使用 `npm audit fix --force` 破坏锁定版本。

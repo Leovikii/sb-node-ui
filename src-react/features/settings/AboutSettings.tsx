@@ -9,7 +9,7 @@ export function AboutSettings() {
       <DataList withDivider>
         <DataList.Item>
           <DataList.ItemLabel>{t('about.version')}</DataList.ItemLabel>
-          <DataList.ItemValue><Code>v3.1.0-beta.1</Code></DataList.ItemValue>
+          <DataList.ItemValue><Code>v3.1.0-beta.2</Code></DataList.ItemValue>
         </DataList.Item>
         <DataList.Item>
           <DataList.ItemLabel>{t('about.runtime')}</DataList.ItemLabel>

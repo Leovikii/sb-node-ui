@@ -1,11 +1,11 @@
 # v3.1 前端依赖与包体积基线
 
 记录日期：2026-07-30  
-当前状态：`v3.1.0-beta.1` 已切换为 React 单入口；本文件保留迁移初始数据用于同口径比较。
+当前状态：`v3.1.0-beta.2` 已切换为 React 单入口并完成正式版总 JS 预算收束；本文件保留迁移初始数据用于同口径比较。
 
 ## 依赖许可
 
-新增前端栈使用 React 19.2、Mantine 9.5、React Router、Zustand、i18next、dnd-kit、Lucide React 与现有 Zod/CodeMirror。直接依赖的发布包采用 MIT、ISC 等宽松开源许可证，不需要许可证密钥、资格认证或年度续期。
+当前前端栈使用 React 19.2、Mantine 9.5、React Router、Zustand、i18next、dnd-kit、Lucide React 与 Zod。JSON 编辑使用 Mantine `JsonInput`，不再包含 CodeMirror。直接依赖的发布包采用 MIT、ISC 等宽松开源许可证，不需要许可证密钥、资格认证或年度续期。
 
 `npm run check:licenses` 扫描 lockfile 中所有非 dev 包，只接受当前审核过的宽松许可证表达式。新增其他许可证时检查会失败，必须先人工阅读发布包条款并更新 ADR，不能仅凭项目主页声明放行。
 
@@ -13,7 +13,7 @@
 
 | 许可证 | 包数量 |
 |---|---:|
-| MIT | 68 |
+| MIT | 52 |
 | BSD-3-Clause | 1 |
 | ISC | 1 |
 | 0BSD | 1 |
@@ -61,6 +61,12 @@ React 当前只是未做拆分的平台骨架，gzip JS 比 Vue 入口高约 22%
 | 入口 CSS gzip | 8.91 kB | 33.90 kB | +280.5% |
 
 Beta 首屏通过原计划“不高于 3.0 入口 10%”的门槛，并通过路由与 CodeMirror lazy 验证；全量加载所有 feature 后的 JS 未达到“总量增幅不超过 15%”的正式版门槛。`FE-3151` 因此继续为 `IN_PROGRESS`，Beta 发布说明必须保留该已知体积风险，正式版前继续评估 Mantine/CodeMirror 与 feature chunk 成本。
+
+## Beta.2 性能收束
+
+`v3.1.0-beta.2` 使用 Mantine `JsonInput` 替换 CodeMirror，并从 production dependencies 移除 16 个 CodeMirror/Lezer/辅助包。相同 Vite 生产构建口径下，全部 `dist/assets/*.js` 为 281.87 KiB gzip，较 `v3.0.0` 的 248.53 KiB 增加约 13.4%，低于正式版 15% 上限 285.81 KiB。
+
+`npm run check:bundle` 在 production build 后重新 gzip 所有客户端 JS chunk；`npm run verify` 已包含该门禁。主路由、资源、Profile 与其他 feature 继续按需加载，但预算不会因懒加载而忽略任何客户端功能代码。Chrome DevTools MCP 已安装到本地 Codex 配置，但当前进程不能热加载新 MCP；Core Web Vitals 与真实网络依赖链需在重启后的会话补测，不影响已量化并自动门禁的构建总量结论。
 
 ## 安全审计状态
 

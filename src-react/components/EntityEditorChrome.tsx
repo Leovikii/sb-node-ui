@@ -15,7 +15,7 @@ export function EntityEditorHeader({
 }) {
   return (
     <Modal.Header data-testid="entity-editor-header">
-      <Group gap="xs" wrap="nowrap" flex={1} miw={0} me="xs">
+      <Group gap="xs" wrap="nowrap" flex={1} miw={0} mih={36} me="xs">
         <Badge size="sm" variant="light" flex="0 0 auto">{kind}</Badge>
         {mode === 'edit' ? (
           <>

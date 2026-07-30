@@ -1,5 +1,5 @@
 import {
-  ActionIcon, Badge, Button, Card, Center, Code, Container, CopyButton, EmptyState, Group, Loader,
+  ActionIcon, Badge, Button, Card, Center, Code, Container, CopyButton, EmptyState, Group, JsonInput, Loader,
   Menu, Modal, ScrollArea, SegmentedControl, SimpleGrid, Stack, Text, Title, Tooltip,
   UnstyledButton,
 } from '@mantine/core';
@@ -7,7 +7,7 @@ import { useMediaQuery } from '@mantine/hooks';
 import { modals } from '@mantine/modals';
 import { notifications } from '@mantine/notifications';
 import { Boxes, Check, Link2, MoreHorizontal, Pencil, Plus, RotateCcw, Save, Trash2 } from 'lucide-react';
-import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { AssetSummary, RulesetBuildStatusResult, StateData } from '../../../shared';
 import { api } from '../../../src/api/endpoints';
@@ -16,8 +16,6 @@ import { EntityEditorHeader } from '../../components/EntityEditorChrome';
 import { useAssetsStore } from '../../stores/assets';
 import { useWorkspaceStore } from '../../stores/workspace';
 import { RulesetEditor } from './RulesetEditor';
-
-const CodeEditor = lazy(() => import('../../components/CodeEditor/CodeEditor'));
 
 export type ResourceType = 'node' | 'template' | 'adapter' | 'ruleset';
 
@@ -367,9 +365,14 @@ export function ResourcesPage({ type }: { type: ResourceType }) {
                       </ScrollArea>
                     ) : <Center h="52dvh"><Loader /></Center>
                   ) : editor.mode === 'edit' ? (
-                    <Suspense fallback={<Center h="52dvh"><Loader /></Center>}>
-                      <CodeEditor value={editor.content} onChange={(content) => setEditor((current) => current ? { ...current, content } : current)} />
-                    </Suspense>
+                    <JsonInput
+                      aria-label={t('assets.jsonEditor')}
+                      value={editor.content}
+                      validationError={t('assets.invalidJson')}
+                      formatOnBlur resize="none" spellCheck={false}
+                      styles={{ input: { height: '52dvh', overflow: 'auto', fontFamily: 'var(--mantine-font-family-monospace)' } }}
+                      onChange={(content) => setEditor((current) => current ? { ...current, content } : current)}
+                    />
                   ) : (
                     <ScrollArea h="52dvh" type="auto"><Code block aria-label={t('assets.previewJson')}>{editor.content}</Code></ScrollArea>
                   )}

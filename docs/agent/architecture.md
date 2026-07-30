@@ -41,7 +41,7 @@ shared/                    # 浏览器与 Worker 共用 contract/schema
 worker/                    # 后端保持分层结构
 ```
 
-`v3.1.0-beta.1` 已将默认入口直接指向 `src-react/main.tsx`。旧 Vue、PrimeVue、Pinia、Vue Router、Vue I18n、Tailwind、vuedraggable 与迁移期双入口均已删除；`src-react` 作为明确的浏览器 UI 边界保留，`src/api` 与 `src/i18n/messages` 继续提供框架无关共享模块。
+`v3.1.0-beta.2` 的默认入口直接指向 `src-react/main.tsx`。旧 Vue、PrimeVue、Pinia、Vue Router、Vue I18n、Tailwind、vuedraggable、CodeMirror 与迁移期双入口均已删除；`src-react` 作为明确的浏览器 UI 边界保留，`src/api` 与 `src/i18n/messages` 继续提供框架无关共享模块。
 
 ## 前端职责
 
@@ -49,12 +49,12 @@ worker/                    # 后端保持分层结构
 - `api`：浏览器唯一网络出口，处理 envelope、401、AbortSignal 和稳定错误码。
 - `stores`：只存跨页面服务器状态；表单 draft 留在 feature hook 或 Mantine form。
 - `features`：按用户能力组织页面和局部状态，不感知 R2/GitHub 基础设施。
-- `components`：只保留 AppShell 导航模型、CodeMirror 适配器等项目语义组件。
+- `components`：只保留具有业务语义或第三方边界价值的共享组件，不包装 Mantine primitive。
 - `theme`：Mantine theme、颜色方案 manager 和少量全局 token。
 
 ## 保留的专业依赖
 
-- CodeMirror：JSON 编辑、搜索、历史与 lint。
+- Mantine JsonInput：JSON 编辑、校验和格式化，不增加第二套编辑器运行时。
 - Lucide React：统一语义图标。
 - dnd-kit：Profile 排序；Mantine 不提供拖拽排序。
 - Zod：共享运行时 schema 和表单验证。

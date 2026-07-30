@@ -285,7 +285,7 @@ test('React entry initializes with a password-only request and guarded route', a
   expect(brandIconBox!.width).toBe(36);
   expect(brandIconBox!.height).toBe(36);
   await page.goto('/#/settings/about');
-  await expect(page.getByText('v3.1.0-beta.1', { exact: true })).toBeVisible();
+  await expect(page.getByText('v3.1.0-beta.2', { exact: true })).toBeVisible();
 });
 
 test('React entry persists language and color scheme with native Mantine controls', async ({ page }) => {
@@ -428,7 +428,7 @@ test('React settings rotate tokens and connect repository with validated Mantine
   expect(state.compilerRequests[0].postDataJSON()).toEqual({ enabled: true });
 });
 
-test('React resources create a JSON asset through the lazy CodeMirror modal', async ({ page }) => {
+test('React resources edit validated JSON with Mantine JsonInput', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   const state = await mockReactApi(page);
   const noNotePath = 'sing-sub/nodes/client.json';
@@ -455,9 +455,18 @@ test('React resources create a JSON asset through the lazy CodeMirror modal', as
   await page.getByRole('button', { name: '新建', exact: true }).click();
 
   const dialog = page.getByRole('dialog');
-  await dialog.getByRole('textbox', { name: '名称', exact: true }).fill('edge-nodes');
+  const jsonEditor = dialog.getByRole('textbox', { name: 'JSON 编辑器', exact: true });
+  const nameEditor = dialog.getByRole('textbox', { name: '名称', exact: true });
+  const saveButton = dialog.getByRole('button', { name: '保存', exact: true });
+  await jsonEditor.fill('{');
+  await nameEditor.click();
+  await expect(dialog.getByText('JSON 语法错误', { exact: true })).toBeVisible();
+  await expect(saveButton).toBeDisabled();
+  await jsonEditor.fill('{"inbounds":[],"outbounds":[]}');
+  await nameEditor.fill('edge-nodes');
+  await expect(jsonEditor).toHaveValue('{\n  "inbounds": [],\n  "outbounds": []\n}');
   await dialog.getByRole('textbox', { name: '备注', exact: true }).fill('Edge nodes');
-  await dialog.getByRole('button', { name: '保存', exact: true }).click();
+  await saveButton.click();
 
   await expect.poll(() => state.fileRequests.length).toBe(1);
   const payload = state.fileRequests[0].postDataJSON();
@@ -513,10 +522,22 @@ test('React resources create a JSON asset through the lazy CodeMirror modal', as
   expect(modeGeometry).not.toBeNull();
   expect(Math.abs(modeGeometry!.indicatorX - modeGeometry!.labelX)).toBeLessThanOrEqual(1);
   expect(Math.abs(modeGeometry!.indicatorWidth - modeGeometry!.labelWidth)).toBeLessThanOrEqual(1);
+  const [previewHeaderBox, previewDialogBox] = await Promise.all([
+    previewHeader.boundingBox(), previewDialog.boundingBox(),
+  ]);
   await previewDialog.getByText('编辑', { exact: true }).click();
   await expect(previewHeader.getByRole('textbox', { name: '名称', exact: true })).toHaveValue('edge-nodes');
   await expect(previewHeader.getByRole('textbox', { name: '备注', exact: true })).toHaveValue('Edge nodes');
   await expect(previewDialog.getByRole('button', { name: '保存', exact: true })).toBeVisible();
+  const [editHeaderBox, editDialogBox] = await Promise.all([
+    previewHeader.boundingBox(), previewDialog.boundingBox(),
+  ]);
+  expect(previewHeaderBox).not.toBeNull();
+  expect(previewDialogBox).not.toBeNull();
+  expect(editHeaderBox).not.toBeNull();
+  expect(editDialogBox).not.toBeNull();
+  expect(Math.abs(previewHeaderBox!.height - editHeaderBox!.height)).toBeLessThanOrEqual(1);
+  expect(Math.abs(previewDialogBox!.height - editDialogBox!.height)).toBeLessThanOrEqual(1);
   await page.getByRole('dialog').getByRole('button', { name: '关闭', exact: true }).click();
 
   await page.setViewportSize({ width: 320, height: 900 });
@@ -739,7 +760,18 @@ test('React rulesets edit structured sources and manual rules, retry builds, and
   const state = await mockReactApi(page);
   const path = 'sing-sub/rulesets/smoke-rules.json';
   state.rulesets = [{ path, note: 'Smoke rules' }];
-  state.contents[path] = JSON.stringify({ version: 2, rules: [], _sing_sub: { note: 'Smoke rules', sources: [] } }, null, 2);
+  state.contents[path] = JSON.stringify({
+    version: 2,
+    rules: [],
+    _sing_sub: {
+      note: 'Smoke rules',
+      sources: [{
+        url: 'https://example.com/rules.json',
+        interval_hours: 168,
+        last_updated: '2026-07-30T12:34:00.000Z',
+      }],
+    },
+  }, null, 2);
   state.buildStatus = 'failed';
   await login(page, state);
 
@@ -752,10 +784,32 @@ test('React rulesets edit structured sources and manual rules, retry builds, and
 
   await card.getByRole('button', { name: '编辑', exact: true }).click();
   const dialog = page.getByRole('dialog');
-  await dialog.getByRole('textbox', { name: 'SOURCE', exact: true }).fill('https://example.com/rules.json');
-  await dialog.getByRole('combobox', { name: '更新周期', exact: true }).click();
+  await expect(dialog.getByText('SOURCE', { exact: true })).toHaveCount(1);
+  await expect(dialog.getByText('DOMAIN', { exact: true })).toHaveCount(1);
+  await expect(dialog.getByText('更新周期', { exact: true })).toHaveCount(0);
+  await expect(dialog.getByRole('textbox', { name: 'SOURCE', exact: true })).toHaveValue('https://example.com/rules.json');
+  const sourceControls = dialog.getByTestId('ruleset-source-controls');
+  const intervalSelect = dialog.getByRole('combobox', { name: '更新周期', exact: true });
+  const sourceDelete = dialog.getByRole('button', { name: '删除 SOURCE', exact: true });
+  await expect(sourceControls.getByText('最近更新', { exact: false })).toContainText('2026');
+  expect(await intervalSelect.evaluate((element) => Boolean(element.closest('[data-testid="ruleset-source-controls"]')))).toBe(true);
+  expect(await sourceDelete.evaluate((element) => Boolean(element.closest('[data-testid="ruleset-source-controls"]')))).toBe(true);
+  await intervalSelect.click();
   await page.getByRole('option', { name: '每天', exact: true }).click();
   await dialog.getByRole('textbox', { name: 'DOMAIN', exact: true }).fill('example.com\nwww.example.com');
+  await page.setViewportSize({ width: 320, height: 900 });
+  expect(await dialog.evaluate((element) => element.scrollWidth - element.clientWidth)).toBeLessThanOrEqual(0);
+  const [dialogBox, sourceControlsBox, intervalBox, sourceDeleteBox] = await Promise.all([
+    dialog.boundingBox(), sourceControls.boundingBox(), intervalSelect.boundingBox(), sourceDelete.boundingBox(),
+  ]);
+  expect(dialogBox).not.toBeNull();
+  expect(sourceControlsBox).not.toBeNull();
+  expect(intervalBox).not.toBeNull();
+  expect(sourceDeleteBox).not.toBeNull();
+  for (const box of [sourceControlsBox!, intervalBox!, sourceDeleteBox!]) {
+    expect(box.x).toBeGreaterThanOrEqual(dialogBox!.x);
+    expect(box.x + box.width).toBeLessThanOrEqual(dialogBox!.x + dialogBox!.width + 1);
+  }
   await dialog.getByRole('button', { name: '保存', exact: true }).click();
 
   await expect.poll(() => state.fileRequests.length).toBe(1);
@@ -765,7 +819,11 @@ test('React rulesets edit structured sources and manual rules, retry builds, and
     version: 2,
     _sing_sub: {
       note: 'Smoke rules',
-      sources: [{ url: 'https://example.com/rules.json', interval_hours: 24 }],
+      sources: [{
+        url: 'https://example.com/rules.json',
+        interval_hours: 24,
+        last_updated: '2026-07-30T12:34:00.000Z',
+      }],
       manual: { domain: ['example.com', 'www.example.com'] },
     },
   });

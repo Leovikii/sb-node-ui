@@ -25,10 +25,11 @@
 | ADR-052 | ACCEPTED | 迁移采用短期双构建、单生产入口；不在运行时桥接 Vue 与 React。 |
 | ADR-053 | ACCEPTED | `3.1.0-beta.1` 切换默认入口到 React，并删除已无调用方的 Vue 迁移栈；`3.0.0` 保留为代码回滚基线。 |
 | ADR-054 | ACCEPTED | 资源与 Profile 编辑器统一以实体名称为主标题、类型为辅助信息；预览态元数据只读，操作区独立于可滚动内容。 |
+| ADR-055 | ACCEPTED | JSON 资源编辑改用 Mantine `JsonInput`，移除 CodeMirror 运行时并以自动化总 JS 预算门禁防止回归。 |
 
 ## ADR-050：React 19 + Mantine 9
 
-3.1.0 使用 React 19、Mantine 9、React Router、Zustand、react-i18next、`@mantine/form`、dnd-kit、CodeMirror 和 Lucide React。
+3.1.0 使用 React 19、Mantine 9、React Router、Zustand、react-i18next、`@mantine/form`、dnd-kit、Mantine `JsonInput` 和 Lucide React；CodeMirror 选型已由 ADR-055 取代。
 
 本决策取代原 ADR-001 至 ADR-006 中的 Vue/PrimeVue/Pinia/Vue Router/Vue I18n 选型，取代 ADR-014 的 Tailwind 布局选型，并取代 ADR-039/040 的 PrimeVue/Vue 专属 UI 实现。后端、shared contract、路由 URL、用户能力和数据语义保持不变。
 
@@ -57,4 +58,12 @@ Beta 切换是对正式版总包体积门槛的有限例外：首屏、功能回
 资源与 Profile 弹窗采用相同的信息层级：已有实体以名称作为主标题，资源类型或“配置”只用 Mantine `Badge` 作为辅助上下文；新建实体以“新建…”作为主标题。类型不能取代实体名称，因为名称才是用户在列表和编辑流程中识别对象的稳定标识。
 
 类型、名称、备注与关闭按钮统一位于 Mantine `Modal.Header`：预览态名称按内容占宽，非空备注紧随其后并保持左对齐；编辑态在相同位置原位切换为名称和备注输入框，Modal Body 不再重复渲染元数据。模式切换与底部操作区位于可滚动业务内容之外，长表单和代码预览统一使用 Mantine `ScrollArea` 独立滚动，避免取消和保存按钮随内容离开视口。移动端继续使用全屏 Modal，ScrollArea 通过 Mantine 弹性布局填满标题与操作区之间的剩余高度，不实现自定义 sticky、滚动锁或 overlay。
+
+## ADR-055：用 Mantine JsonInput 收束 JSON 编辑器体积
+
+`3.1.0-beta.2` 将通用 JSON 资源编辑器从 CodeMirror 6 替换为 Mantine `JsonInput`。保留受控编辑、JSON 语法校验、失焦格式化、等宽字体、原生键盘撤销/重做、只读预览和保存前完整解析；不再提供 CodeMirror 专属行号、语法高亮、内嵌搜索面板和工具栏按钮。
+
+原因：CodeMirror 及其 commands、language、lint、search、state、theme、view 依赖形成约 116.8 KiB gzip 的二级懒加载代码，是全客户端 JS 超出正式版预算的决定性来源。`JsonInput` 已包含在锁定的 Mantine 运行时中，功能覆盖当前业务正确性所需能力，也更符合“优先组件库原生能力、减少自定义实现”的迁移原则。
+
+构建后必须自动计算 `dist/assets/*.js` 的 gzip 总量，并维持不高于 `v3.0.0` 全客户端 JS 基线 248.53 KiB 的 115%，即 285.81 KiB。该门禁衡量全部懒加载功能，而不只衡量首屏入口；修改预算需要新的显式决策。
 

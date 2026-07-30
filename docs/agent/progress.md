@@ -2,8 +2,8 @@
 
 更新日期：2026-07-31
 回滚基线：`3.0.0`
-当前候选：`3.1.0-beta.1`
-状态：React/Mantine Beta 已部署生产并完成初步功能验证；FE-3159 已完成并保留真实后端页面供用户验收。
+当前候选：`3.1.0-beta.2`
+状态：`3.1.0-beta.1` 生产验证通过；FE-3151/FE-3160 已完成，`3.1.0-beta.2` 待用户部署验证。
 
 ## 任务台账
 
@@ -20,13 +20,14 @@
 | FE-3130–FE-3133 | DONE | 资源、CodeMirror、Ruleset 编辑与构建状态 |
 | FE-3140–FE-3144 | DONE | Profile 与 GitHub Sync |
 | FE-3150 | DONE | 完整桌面、移动端、双语、Firefox 与键盘回归 |
-| FE-3151 | IN_PROGRESS | 包体积、首帧与性能验收 |
+| FE-3151 | DONE | 包体积、首帧与性能验收 |
 | FE-3154 | DONE | 卡片整面预览交互、Profile 拖曳层级与资源移动端布局优化 |
 | FE-3155 | DONE | 资源预览切换控件首帧修复与 AppShell 品牌图标 |
 | FE-3156 | DONE | Profile 筛选节点协议标签与移动端排版 |
 | FE-3157 | DONE | 资源/Profile 编辑器标题、只读预览元数据与固定操作区统一 |
 | FE-3158 | DONE | 编辑器标题行元数据收敛与预览/编辑原位切换 |
 | FE-3159 | DONE | 编辑器预览标题紧凑排列与移动端弹性滚动区 |
+| FE-3160 | DONE | Beta.2 性能门禁、规则集来源控件与编辑器尺寸稳定性 |
 | FE-3152 | DONE | 默认入口切换 React 与 Vue 迁移栈清理 |
 | FE-3153 | DONE | `3.1.0-beta.1` 版本、公开文档与发布说明收束 |
 
@@ -35,7 +36,7 @@
 ## 当前验证基线
 
 - 生产前端：`index.html` 唯一入口挂载 React；Vue、PrimeVue、Pinia、Vue Router、Vue I18n、Tailwind、vuedraggable、旧 `.vue` 与迁移期 `react.html` 已清理。
-- 专业依赖：CodeMirror、Lucide React 与 dnd-kit 分别保留代码编辑、图标和 Profile 排序能力。
+- 专业依赖：Lucide React 与 dnd-kit 分别保留图标和 Profile 排序能力；JSON 编辑使用 Mantine `JsonInput`，不再携带独立编辑器运行时。
 - E2E：React 单入口共 11 个 Playwright 场景；Chromium 桌面/移动共 22 次执行通过，另有 Firefox 2 次专项通过。布局测试使用 role/label 或稳定 test id，不依赖 Mantine 私有 class。
 - Worker/shared/backend 不在 3.1 迁移范围。
 
@@ -186,6 +187,17 @@
 - 测试交接：`npm run dev:real-backend` 保持运行，浏览器保留 `http://127.0.0.1:8787/#/profiles` 的 `zio` Profile 编辑窗口供用户验收；测试未修改字段或保存生产数据。
 - 遗留风险：FE-3158/FE-3159 尚未部署生产；FE-3151 的正式版总 JS 预算仍未完成。
 - 下一任务：用户完成视觉验收后部署本批 UI 修复，随后继续 FE-3151 体积收束。
+
+### 2026-07-31：FE-3151/FE-3160 Beta.2 性能与规则集 UI 收束
+
+- 完成内容：通用 JSON 编辑器改用 Mantine `JsonInput`，移除 16 个 CodeMirror/Lezer 生产依赖；新增全客户端 JS gzip 自动预算门禁。规则集来源区只保留 Accordion 顶部类型 Badge，将最近更新时间、更新周期和删除操作合并到底部控件区，并在修改周期时保留 `last_updated`。共享编辑器标题行增加稳定最小高度，预览/编辑切换不再改变 Modal 外框尺寸。
+- 文件/模块：`src-react/features/resources`、`src-react/components/EntityEditorChrome.tsx`、`scripts/check-bundle-budget.mjs`、React E2E、双语词条、版本与 Beta.2 公开文档。
+- 性能：全部客户端 JS 为 281.87 KiB gzip，较 `v3.0.0` 的 248.53 KiB 增加约 13.4%，低于 15% 上限 285.81 KiB；`npm run verify` 已包含该门禁。
+- 验证：完整 `npm run verify` 通过，包括 lint、许可证、shared/web/worker typecheck、115 项 unit、66 项 integration、production build、Chromium 桌面/移动 22 项和 Firefox 2 项 E2E。`npm run worker:dry-run` 读取 48 个静态文件，上传预览 750.02 KiB / gzip 122.23 KiB，识别 `WORKSPACE_BUCKET` 后以 dry-run 退出。
+- 真实后端只读验收：About 显示 `v3.1.0-beta.2`；规则集桌面预览/编辑 Dialog 高度差为 0 px；`SOURCE`/`DOMAIN` 各只有一个可见标题；最近更新时间恢复显示；更新周期与 44 px 删除按钮处于同一控件区。320×700 下 Dialog 为 320×700、页面横向溢出为 0，控件区未越界；控制台无 error/warn，未保存或修改生产数据。
+- 性能工具：Chrome DevTools MCP 已安装到本地 Codex 配置；当前进程不能热加载新 MCP，Core Web Vitals 与网络 trace 需重启 Codex 后作为补充测量执行，不记录未采集的指标，也不影响已经量化并自动门禁的总 JS 结论。
+- 遗留风险：`3.1.0-beta.2` 尚未部署、推送、打 tag 或发布；真实保存、Ruleset 外部抓取、GitHub sync 与 SRS 仍由用户在实际部署后验证。
+- 下一任务：用户验收保留的本地规则集编辑窗口，并决定是否部署 Beta.2。
 
 ## 完成记录模板
 

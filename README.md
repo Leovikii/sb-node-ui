@@ -6,7 +6,7 @@
 
 Sing-Sub is a self-hosted control plane for editing and distributing [sing-box](https://sing-box.sagernet.org/) configurations.
 
-Version: [`v3.1.0-beta.1`](docs/wiki/Release-3.1.0-beta.1.en.md) (beta; `v3.0.0` remains the rollback baseline)
+Version: [`v3.1.0-beta.2`](docs/wiki/Release-3.1.0-beta.2.en.md) (beta; `v3.0.0` remains the rollback baseline)
 
 ## Features
 
@@ -34,7 +34,7 @@ See the [complete deployment guide](https://github.com/Leovikii/Sing-Sub/wiki/De
 ## Technology
 
 - React 19, Mantine 9, React Router, Zustand, and react-i18next
-- TypeScript, Vite, CodeMirror, and Zod
+- TypeScript, Vite, Mantine JsonInput, and Zod
 - Cloudflare Workers, Static Assets, Cache API, and R2
 - Vitest and Playwright
 

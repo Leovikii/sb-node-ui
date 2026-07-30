@@ -6,6 +6,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:real-backend": "node scripts/run-real-backend-preview.mjs",
     "lint": "eslint .",
     "check:licenses": "node scripts/check-ui-licenses.mjs",
     "typecheck:shared": "tsc -p tsconfig.shared.json",

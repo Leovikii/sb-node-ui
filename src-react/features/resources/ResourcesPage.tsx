@@ -269,7 +269,7 @@ export function ResourcesPage({ type }: { type: ResourceType }) {
                     <Tooltip label={t('common.edit')}>
                       <ActionIcon variant="subtle" aria-label={t('common.edit')} onClick={() => void openFile(file)}><Pencil size={18} /></ActionIcon>
                     </Tooltip>
-                    <Menu position="bottom-end" shadow="md">
+                    <Menu position="bottom-end" shadow="md" transitionProps={{ transition: 'pop', duration: 120 }}>
                       <Menu.Target><ActionIcon variant="subtle" aria-label={t('common.moreActions')}><MoreHorizontal size={18} /></ActionIcon></Menu.Target>
                       <Menu.Dropdown><Menu.Item color="red" leftSection={<Trash2 size={16} />} onClick={() => remove(file)}>{t('assets.removeFile')}</Menu.Item></Menu.Dropdown>
                     </Menu>

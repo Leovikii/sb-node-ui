@@ -1,17 +1,20 @@
 import {
   ActionIcon,
   AppShell as MantineAppShell,
+  Box,
   Burger,
   Divider,
   Group,
   NavLink,
   ScrollArea,
+  Stack,
   Text,
   Tooltip,
+  Transition,
   useComputedColorScheme,
   useMantineColorScheme,
 } from '@mantine/core';
-import { useDisclosure } from '@mantine/hooks';
+import { useDisclosure, useMounted } from '@mantine/hooks';
 import {
   Boxes,
   Languages,
@@ -28,7 +31,8 @@ import {
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { modals } from '@mantine/modals';
-import { NavLink as RouterNavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
+import { NavLink as RouterNavLink, useLocation, useNavigate, useOutlet } from 'react-router-dom';
+import type { ReactNode } from 'react';
 import { clearApplicationSession } from '../session';
 import { useSessionStore } from '../../stores/session';
 
@@ -47,9 +51,20 @@ const navigation = [
   { to: '/settings/general', match: '/settings', label: 'nav.settings', icon: Settings },
 ] as const;
 
+function RouteTransition({ children }: { children: ReactNode }) {
+  const mounted = useMounted();
+
+  return (
+    <Transition mounted={mounted} transition="fade" duration={120} timingFunction="ease-out">
+      {(styles) => <Box data-testid="route-transition" style={styles}>{children}</Box>}
+    </Transition>
+  );
+}
+
 export function AppShell() {
   const [opened, { toggle, close }] = useDisclosure();
   const location = useLocation();
+  const outlet = useOutlet();
   const navigate = useNavigate();
   const { t, i18n } = useTranslation();
   const { setColorScheme } = useMantineColorScheme();
@@ -124,25 +139,32 @@ export function AppShell() {
 
       <MantineAppShell.Navbar p="sm" aria-label={t('nav.main')}>
         <MantineAppShell.Section grow component={ScrollArea}>
-          {navigation.map(({ to, match, label, icon: Icon, ...item }) => (
-            <NavLink
-              key={to}
-              component={RouterNavLink}
-              to={to}
-              label={t(label)}
-              leftSection={<Icon size={18} />}
-              active={location.pathname === match || location.pathname.startsWith(`${match}/`)}
-              onClick={() => { navigate(to); close(); }}
-              defaultOpened={match === '/resources'}
-            >
-              {'children' in item && item.children?.map(({ to: childTo, label: childLabel, icon: ChildIcon }) => (
-                <NavLink
-                  key={childTo} component={RouterNavLink} to={childTo} label={t(childLabel)}
-                  leftSection={<ChildIcon size={16} />} active={location.pathname === childTo} onClick={close}
-                />
-              ))}
-            </NavLink>
-          ))}
+          <Stack gap={4}>
+            {navigation.map(({ to, match, label, icon: Icon, ...item }) => (
+              <NavLink
+                key={to}
+                component={RouterNavLink}
+                to={to}
+                label={t(label)}
+                leftSection={<Icon size={18} />}
+                active={location.pathname === match || location.pathname.startsWith(`${match}/`)}
+                variant={'children' in item ? 'subtle' : 'light'}
+                onClick={() => { navigate(to); close(); }}
+                defaultOpened={match === '/resources'}
+              >
+                {'children' in item && item.children ? (
+                  <Stack gap={4} pt={4}>
+                    {item.children.map(({ to: childTo, label: childLabel, icon: ChildIcon }) => (
+                      <NavLink
+                        key={childTo} component={RouterNavLink} to={childTo} label={t(childLabel)}
+                        leftSection={<ChildIcon size={16} />} active={location.pathname === childTo} onClick={close}
+                      />
+                    ))}
+                  </Stack>
+                ) : null}
+              </NavLink>
+            ))}
+          </Stack>
         </MantineAppShell.Section>
         <Divider my="sm" />
         <MantineAppShell.Section>
@@ -153,7 +175,7 @@ export function AppShell() {
       </MantineAppShell.Navbar>
 
       <MantineAppShell.Main>
-        <Outlet />
+        <RouteTransition key={location.pathname}>{outlet}</RouteTransition>
       </MantineAppShell.Main>
     </MantineAppShell>
   );

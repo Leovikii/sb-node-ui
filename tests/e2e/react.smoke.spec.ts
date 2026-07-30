@@ -291,6 +291,40 @@ test('React entry persists language and color scheme with native Mantine control
   await expect(page.getByRole('heading', { name: 'Administrator sign in' })).toBeVisible();
 });
 
+test('React navigation separates nested active states and respects reduced motion', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  const state = await mockReactApi(page);
+  await login(page, state);
+
+  const navigation = page.getByRole('navigation', { name: '主导航' });
+  const resourcesLink = navigation.getByRole('link', { name: '资源', exact: true });
+  const nodesLink = navigation.getByRole('link', { name: '节点集', exact: true });
+  await page.getByRole('button', { name: '打开导航', exact: true }).click();
+  await nodesLink.click();
+  await expect(page.getByRole('heading', { name: '节点集', exact: true })).toBeVisible();
+  await page.getByRole('button', { name: '打开导航', exact: true }).click();
+
+  const [parentBox, childBox, parentBackground, childBackground] = await Promise.all([
+    resourcesLink.boundingBox(),
+    nodesLink.boundingBox(),
+    resourcesLink.evaluate((element) => getComputedStyle(element).backgroundColor),
+    nodesLink.evaluate((element) => getComputedStyle(element).backgroundColor),
+  ]);
+  expect(parentBox).not.toBeNull();
+  expect(childBox).not.toBeNull();
+  expect(childBox!.y - (parentBox!.y + parentBox!.height)).toBeGreaterThanOrEqual(4);
+  expect(parentBackground).not.toBe(childBackground);
+
+  const routeSurface = page.getByTestId('route-transition');
+  await expect(routeSurface).toHaveCSS('transition-property', 'opacity');
+  await expect(routeSurface).toHaveCSS('transition-duration', '0.12s');
+
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await navigation.getByRole('link', { name: '模板', exact: true }).click();
+  await expect(page.getByRole('heading', { name: '模板', exact: true })).toBeVisible();
+  await expect(page.getByTestId('route-transition')).toHaveCSS('transition-duration', '0s');
+});
+
 test('React entry opens mobile navigation and confirms sign out', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   const state = await mockReactApi(page);
@@ -409,6 +443,12 @@ test('React resources create a JSON asset through the lazy CodeMirror modal', as
   expect(JSON.parse(payload.content)).toMatchObject({ note: 'Edge nodes', inbounds: [], outbounds: [] });
   await expect(dialog).toBeHidden();
   await expect(page.getByText('edge-nodes', { exact: true })).toBeVisible();
+
+  const assetCard = page.getByRole('article', { name: 'edge-nodes', exact: true });
+  await assetCard.getByRole('button', { name: '更多操作', exact: true }).click();
+  await page.getByRole('menuitem', { name: '删除文件', exact: true }).click();
+  await expect(dialog.getByText('确定删除 edge-nodes 吗？引用该文件的配置可能会被更新。', { exact: true })).toBeVisible();
+  await dialog.getByRole('button', { name: '取消', exact: true }).click();
 });
 
 test('React profiles create, preview, copy, duplicate, and delete through Mantine dialogs', async ({ page }) => {

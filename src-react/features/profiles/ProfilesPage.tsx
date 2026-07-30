@@ -374,7 +374,7 @@ function SortableProfileCard({
                 <Pencil size={18} />
               </ActionIcon>
             </Tooltip>
-            <Menu position="bottom-end" shadow="md">
+            <Menu position="bottom-end" shadow="md" transitionProps={{ transition: 'pop', duration: 120 }}>
               <Menu.Target>
                 <ActionIcon variant="subtle" aria-label={t('common.moreActions')}><MoreHorizontal size={18} /></ActionIcon>
               </Menu.Target>

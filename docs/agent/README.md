@@ -15,6 +15,7 @@
 - 新增或升级前端依赖时阅读 [依赖与包体积基线](./dependency-baseline.md)。
 - 修改 React UI 前先检索本地 `docs/agent/vendor/mantine-llms-full.txt` 对应章节，并以锁定版本的类型声明复核 API。该文件来自官方 [完整 LLM 文档](https://mantine.dev/llms-full.txt)，仅供本地使用且不提交 Git。
 - 修改 R2、revision、SRS、GitHub sync 或认证时阅读 [数据架构](./data-architecture.md)。
+- 使用本地 React 前端连接真实后端做只读验证时阅读 [真实后端本地预览](./real-backend-preview.md)。
 - 追溯 3.0 决策背景时阅读 [v3.0 历史摘要](./archive/v3.0-summary.md)，更细历史使用 Git。
 
 ## 执行流程

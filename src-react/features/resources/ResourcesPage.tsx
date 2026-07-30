@@ -12,6 +12,7 @@ import { useTranslation } from 'react-i18next';
 import type { AssetSummary, RulesetBuildStatusResult, StateData } from '../../../shared';
 import { api } from '../../../src/api/endpoints';
 import { ApiClientError } from '../../../src/api/client';
+import { EntityEditorTitle, ReadOnlyEntityMetadata } from '../../components/EntityEditorMetadata';
 import { useAssetsStore } from '../../stores/assets';
 import { useWorkspaceStore } from '../../stores/workspace';
 import { RulesetEditor } from './RulesetEditor';
@@ -325,17 +326,29 @@ export function ResourcesPage({ type }: { type: ResourceType }) {
 
       <Modal
         opened={Boolean(editor)} onClose={requestClose}
-        title={t(editor?.file.isNew ? 'assets.newFile' : titleKeyByType[type])}
+        title={editor && (
+          <EntityEditorTitle
+            kind={t(titleKeyByType[type])}
+            title={editor.file.isNew ? t('assets.newFile') : editor.name || t('common.untitled')}
+          />
+        )}
         size="xl" fullScreen={mobile} transitionProps={{ transition: 'fade', duration: 120 }}
         closeOnClickOutside={false}
         closeButtonProps={{ 'aria-label': t('common.close') }}
       >
         {editor && (
           <Stack gap="md">
-            <Group grow align="flex-start">
-              <TextInput label={t('assets.fileName')} value={editor.name} error={editor.name && !/^[a-zA-Z0-9][a-zA-Z0-9._-]*$/.test(editor.name) ? t('assets.invalidName') : null} onChange={(event) => setEditor({ ...editor, name: event.currentTarget.value })} />
-              <TextInput label={t('common.note')} value={editor.note} onChange={(event) => setEditor({ ...editor, note: event.currentTarget.value })} />
-            </Group>
+            {editor.mode === 'edit' ? (
+              <SimpleGrid cols={{ base: 1, sm: 2 }}>
+                <TextInput label={t('assets.fileName')} value={editor.name} error={editor.name && !/^[a-zA-Z0-9][a-zA-Z0-9._-]*$/.test(editor.name) ? t('assets.invalidName') : null} onChange={(event) => setEditor({ ...editor, name: event.currentTarget.value })} />
+                <TextInput label={t('common.note')} value={editor.note} onChange={(event) => setEditor({ ...editor, note: event.currentTarget.value })} />
+              </SimpleGrid>
+            ) : (
+              <ReadOnlyEntityMetadata
+                name={editor.name} note={editor.note}
+                nameLabel={t('common.name')} noteLabel={t('common.note')} noNoteLabel={t('common.noNote')}
+              />
+            )}
             <SegmentedControl
               fullWidth data-testid="resource-mode-control"
               value={editor.mode}
@@ -360,8 +373,12 @@ export function ResourcesPage({ type }: { type: ResourceType }) {
               <ScrollArea h="52dvh" type="auto"><Code block aria-label={t('assets.previewJson')}>{editor.content}</Code></ScrollArea>
             )}
             <Group justify="flex-end">
-              <Button variant="subtle" onClick={requestClose}>{t('common.cancel')}</Button>
-              <Button leftSection={<Save size={17} />} loading={saving} disabled={!dirty || !valid} onClick={() => void save()}>{t('common.save')}</Button>
+              <Button type="button" variant="subtle" onClick={requestClose}>
+                {t(editor.mode === 'preview' ? 'common.done' : 'common.cancel')}
+              </Button>
+              {editor.mode === 'edit' && (
+                <Button leftSection={<Save size={17} />} loading={saving} disabled={!dirty || !valid} onClick={() => void save()}>{t('common.save')}</Button>
+              )}
             </Group>
           </Stack>
         )}

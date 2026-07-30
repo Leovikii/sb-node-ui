@@ -47,7 +47,7 @@ npm run verify
 npm run worker:dry-run
 ```
 
-架构决策与发布进度见 [docs/refactor](docs/refactor/README.md)，运维文档见 [docs](docs/README.md)。
+用户与运维文档统一见 [docs](docs/README.md)。
 
 ## 许可证
 

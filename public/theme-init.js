@@ -10,6 +10,7 @@
   }
   root.classList.toggle('app-dark', dark);
   root.dataset.theme = dark ? 'dark' : 'light';
+  root.dataset.mantineColorScheme = dark ? 'dark' : 'light';
   root.style.colorScheme = dark ? 'dark' : 'light';
   root.style.backgroundColor = dark ? '#121212' : '#f7f7f8';
   globalThis.document.querySelector('#theme-color')?.setAttribute('content', dark ? '#121212' : '#f7f7f8');

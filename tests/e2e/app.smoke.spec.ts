@@ -253,10 +253,10 @@ test('uses a compact and stable desktop editor header', async ({ page }) => {
 
   await page.getByRole('button', { name: '新建' }).click();
   const dialog = page.getByRole('dialog');
-  const header = dialog.locator('.p-dialog-header');
+  const header = dialog.getByTestId('editor-header');
   const nameInput = dialog.getByLabel('名称', { exact: true });
   const noteInput = dialog.getByLabel('备注', { exact: true });
-  const modeControl = dialog.locator('.p-selectbutton');
+  const modeControl = dialog.getByTestId('editor-mode');
   const previewButton = dialog.getByRole('button', { name: '预览', exact: true });
   const saveButton = dialog.getByRole('button', { name: '保存', exact: true });
 
@@ -268,7 +268,7 @@ test('uses a compact and stable desktop editor header', async ({ page }) => {
   const modeBox = (await modeControl.boundingBox())!;
   const saveBox = (await saveButton.boundingBox())!;
   const editHeaderBox = (await header.boundingBox())!;
-  const editContentBox = (await dialog.locator('.p-dialog-content').boundingBox())!;
+  const editContentBox = (await dialog.getByTestId('editor-content').boundingBox())!;
   expect(Math.abs(
     (nameBox.y + nameBox.height / 2) - (noteBox.y + noteBox.height / 2),
   )).toBeLessThan(2);
@@ -292,7 +292,7 @@ test('uses a compact and stable desktop editor header', async ({ page }) => {
   const previewNoteBox = (await previewNote.boundingBox())!;
   const previewMetadataBox = (await previewMetadata.boundingBox())!;
   const previewHeaderBox = (await header.boundingBox())!;
-  const previewContentBox = (await dialog.locator('.p-dialog-content').boundingBox())!;
+  const previewContentBox = (await dialog.getByTestId('editor-content').boundingBox())!;
   expect(previewTitleBox.x).toBeCloseTo(nameBox.x, 0);
   expect(previewNoteBox.x - (previewTitleBox.x + previewTitleBox.width)).toBeGreaterThanOrEqual(15);
   expect(previewNoteBox.x - (previewTitleBox.x + previewTitleBox.width)).toBeLessThanOrEqual(17);
@@ -343,9 +343,9 @@ test('keeps editor metadata and actions stable at 320px', async ({ page }) => {
 
   const previewButton = dialog.getByRole('button', { name: '预览', exact: true });
   const saveButton = dialog.getByRole('button', { name: '保存', exact: true });
-  const modeControl = dialog.locator('.p-selectbutton');
-  const header = dialog.locator('.p-dialog-header');
-  const content = dialog.locator('.p-dialog-content');
+  const modeControl = dialog.getByTestId('editor-mode');
+  const header = dialog.getByTestId('editor-header');
+  const content = dialog.getByTestId('editor-content');
   await expect.poll(() => dialog.evaluate(element => getComputedStyle(element).transform))
     .toBe('matrix(1, 0, 0, 1, 0, 0)');
   const modeX = (await modeControl.boundingBox())?.x;

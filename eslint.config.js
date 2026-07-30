@@ -1,4 +1,6 @@
 import js from '@eslint/js';
+import reactHooks from 'eslint-plugin-react-hooks';
+import reactRefresh from 'eslint-plugin-react-refresh';
 import pluginVue from 'eslint-plugin-vue';
 import globals from 'globals';
 import tseslint from 'typescript-eslint';
@@ -21,7 +23,15 @@ export default tseslint.config(
   ...tseslint.configs.recommended,
   ...pluginVue.configs['flat/essential'],
   {
-    files: ['**/*.{ts,vue}'],
+    ...reactHooks.configs.flat.recommended,
+    files: ['src-react/**/*.{ts,tsx}'],
+  },
+  {
+    ...reactRefresh.configs.vite,
+    files: ['src-react/**/*.{ts,tsx}'],
+  },
+  {
+    files: ['**/*.{ts,tsx,vue}'],
     rules: {
       'no-useless-catch': 'warn',
       'prefer-const': 'warn',
@@ -42,7 +52,7 @@ export default tseslint.config(
     },
   },
   {
-    files: ['src/**/*.{ts,vue}'],
+    files: ['src/**/*.{ts,vue}', 'src-react/**/*.{ts,tsx}'],
     languageOptions: {
       globals: globals.browser,
     },

@@ -47,7 +47,7 @@ npm run verify
 npm run worker:dry-run
 ```
 
-Architecture decisions and release history are tracked in [docs/refactor](docs/refactor/README.md). Operational guides are indexed in [docs](docs/README.md).
+User and operator documentation is indexed in [docs](docs/README.md).
 
 ## License
 

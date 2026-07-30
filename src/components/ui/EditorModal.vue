@@ -9,8 +9,8 @@
     class="editor-dialog"
     :pt="{
       root: { class: '!flex !flex-col !overflow-hidden w-[min(96vw,64rem)] h-[min(88dvh,56rem)] max-h-[56rem] max-sm:!m-0 max-sm:!h-dvh max-sm:!max-h-dvh max-sm:!w-screen max-sm:!rounded-none' },
-      header: { class: '!relative !z-10 !shrink-0 !border-b !border-border-base !bg-bg-surface !p-3 sm:!p-4' },
-      content: { class: '!relative !z-0 !flex !min-h-0 !flex-1 !flex-col !overflow-hidden !p-0' },
+      header: { class: '!relative !z-10 !shrink-0 !border-b !border-border-base !bg-bg-surface !p-3 sm:!p-4', 'data-testid': 'editor-header' },
+      content: { class: '!relative !z-0 !flex !min-h-0 !flex-1 !flex-col !overflow-hidden !p-0', 'data-testid': 'editor-content' },
     }"
     @update:visible="onDialogVisible"
   >
@@ -58,6 +58,7 @@
             option-value="value"
             :allow-empty="false"
             class="shrink-0"
+            data-testid="editor-mode"
             @update:model-value="$emit('update:viewMode', $event as 'preview' | 'edit')"
           >
             <template #option="{ option }">

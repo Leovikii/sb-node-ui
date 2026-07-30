@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { ApiClientError, apiRequest } from '../../src/api/client';
+import { ApiClientError, apiRequest, onApiUnauthorized } from '../../src/api/client';
 
 afterEach(() => vi.unstubAllGlobals());
 
@@ -35,5 +35,17 @@ describe('typed API client', () => {
   it('rejects malformed success payloads', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response('{}', { status: 200 })));
     await expect(apiRequest('/api/test')).rejects.toMatchObject({ code: 'INTERNAL_ERROR' });
+  });
+
+  it('notifies subscribers before rejecting an unauthorized response', async () => {
+    const handler = vi.fn();
+    const unsubscribe = onApiUnauthorized(handler);
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(JSON.stringify({
+      error: { code: 'NOT_AUTHENTICATED' },
+    }), { status: 401 })));
+
+    await expect(apiRequest('/api/test')).rejects.toMatchObject({ status: 401 });
+    expect(handler).toHaveBeenCalledOnce();
+    unsubscribe();
   });
 });

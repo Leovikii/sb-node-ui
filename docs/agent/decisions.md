@@ -25,13 +25,14 @@
 | ADR-052 | ACCEPTED | 迁移采用短期双构建、单生产入口；不在运行时桥接 Vue 与 React。 |
 | ADR-053 | ACCEPTED | `3.1.0-beta.1` 切换默认入口到 React，并删除已无调用方的 Vue 迁移栈；`3.0.0` 保留为代码回滚基线。 |
 | ADR-054 | ACCEPTED | 资源与 Profile 编辑器统一以实体名称为主标题、类型为辅助信息；预览态元数据只读，操作区独立于可滚动内容。 |
-| ADR-055 | ACCEPTED | JSON 资源编辑改用 Mantine `JsonInput`，移除 CodeMirror 运行时并以自动化总 JS 预算门禁防止回归。 |
-| ADR-056 | ACCEPTED | Mantine `JsonInput` 通过原生输入选择 API和 Mantine Popover 恢复轻量查找/替换，不重新引入编辑器运行时。 |
+| ADR-055 | SUPERSEDED | JSON 资源编辑改用 Mantine `JsonInput`；由 ADR-058 取代。 |
+| ADR-056 | SUPERSEDED | Mantine `JsonInput` 的轻量查找/替换；由 ADR-058 取代。 |
 | ADR-057 | ACCEPTED | 根 README 与公开 Wiki 只提供功能介绍、使用和部署说明，不维护版本入口、发布说明、更新日志或开发过程记录。 |
+| ADR-058 | ACCEPTED | JSON 编辑重新采用精简的官方 CodeMirror 6，编辑态懒加载并对应用与编辑器 chunk 分别执行预算门禁。 |
 
 ## ADR-050：React 19 + Mantine 9
 
-3.1.0 使用 React 19、Mantine 9、React Router、Zustand、react-i18next、`@mantine/form`、dnd-kit、Mantine `JsonInput` 和 Lucide React；CodeMirror 选型已由 ADR-055 取代。
+3.1.0 使用 React 19、Mantine 9、React Router、Zustand、react-i18next、`@mantine/form`、dnd-kit、精简 CodeMirror 6 和 Lucide React；JSON 编辑器的最终选型见 ADR-058。
 
 本决策取代原 ADR-001 至 ADR-006 中的 Vue/PrimeVue/Pinia/Vue Router/Vue I18n 选型，取代 ADR-014 的 Tailwind 布局选型，并取代 ADR-039/040 的 PrimeVue/Vue 专属 UI 实现。后端、shared contract、路由 URL、用户能力和数据语义保持不变。
 
@@ -80,4 +81,12 @@ Beta 切换是对正式版总包体积门槛的有限例外：首屏、功能回
 根目录中英文 README 与 `docs/wiki` 只面向用户介绍产品能力，并提供部署、配置和日常使用说明。它们不显示当前版本入口，不保存发布说明、更新日志、迁移任务、包体积、依赖审计、自动化测试过程或 Agent 开发记录。
 
 版本与工程状态继续保存在应用包元数据和 `docs/agent`；部署与恢复的长期操作步骤保存在 `docs/operations`。发布历史如有需要使用 Git tag、GitHub Release 或 Git 历史，不在 Wiki 中建立逐版本页面。
+
+## ADR-058：精简 CodeMirror 6 与隔离性能预算
+
+产品负责人确认行号、JSON 语法高亮、括号匹配和可发现的查找/替换属于正式编辑能力。Mantine `JsonInput` 基于原生 `textarea`，无法在不自研滚动同步、高亮覆盖层和行号栏的情况下可靠提供这些能力，因此 ADR-055 与 ADR-056 被本决策取代。
+
+编辑器直接使用 CodeMirror 官方 MIT 模块，不引入第三方 React wrapper，也不使用 `codemirror` 聚合包或 `basicSetup`。首批只启用行号、JSON 解析与高亮、括号匹配、历史、格式化、lint 和原生查找/替换；不启用自动补全、折叠、多光标附加 UI 或 IDE 级功能。Mantine 只负责编辑器外层工具栏、加载态和 Modal；CodeMirror 负责代码输入、滚动、选择和搜索面板。
+
+CodeMirror 只能在非规则集资源进入编辑状态后动态加载；资源列表和预览不得请求编辑器 chunk。普通应用 JS gzip 继续不高于 285.81 KiB，CodeMirror 专用懒加载 JS gzip 不高于 120 KiB，总客户端 JS gzip 不高于 405.81 KiB。构建门禁必须分别报告三项；修改预算需要新的显式决策。编辑器实例在一次 Modal 会话中保持稳定，关闭时销毁并释放监听器。
 

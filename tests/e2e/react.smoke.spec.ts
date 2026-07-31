@@ -428,7 +428,7 @@ test('React settings rotate tokens and connect repository with validated Mantine
   expect(state.compilerRequests[0].postDataJSON()).toEqual({ enabled: true });
 });
 
-test('React resources edit validated JSON with Mantine JsonInput', async ({ page }) => {
+test('React resources edit validated JSON with lazy CodeMirror search and replace', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   const state = await mockReactApi(page);
   const noNotePath = 'sing-sub/nodes/client.json';
@@ -438,6 +438,7 @@ test('React resources edit validated JSON with Mantine JsonInput', async ({ page
 
   await page.getByRole('link', { name: '资源', exact: true }).click();
   await expect(page.getByRole('heading', { name: '节点集' })).toBeVisible();
+  await expect(page.getByTestId('code-editor-shell')).toHaveCount(0);
   const noNoteCard = page.getByRole('article', { name: 'client', exact: true });
   await noNoteCard.getByRole('button', { name: '预览 client', exact: true }).click();
   const noNoteDialog = page.getByRole('dialog');
@@ -450,30 +451,42 @@ test('React resources edit validated JSON with Mantine JsonInput', async ({ page
   await expect(noNoteDialog.getByText('名称', { exact: true })).toHaveCount(0);
   await expect(noNoteDialog.getByText('备注', { exact: true })).toHaveCount(0);
   await expect(noNoteDialog.getByText('无备注', { exact: true })).toHaveCount(0);
+  await expect(noNoteDialog.getByTestId('code-editor-shell')).toHaveCount(0);
   await noNoteDialog.getByRole('button', { name: '关闭', exact: true }).click();
   await expect(noNoteDialog).toBeHidden();
   await page.getByRole('button', { name: '新建', exact: true }).click();
 
   const dialog = page.getByRole('dialog');
   const jsonEditor = dialog.getByRole('textbox', { name: 'JSON 编辑器', exact: true });
+  const editorShell = dialog.getByTestId('code-editor-shell');
+  const editorToolbar = dialog.getByTestId('code-editor-toolbar');
   const nameEditor = dialog.getByRole('textbox', { name: '名称', exact: true });
   const saveButton = dialog.getByRole('button', { name: '保存', exact: true });
-  await jsonEditor.fill('{');
+  const replaceEditorContent = async (content: string) => {
+    await jsonEditor.click();
+    await jsonEditor.press('Control+a');
+    await jsonEditor.press('Backspace');
+    await page.keyboard.insertText(content);
+  };
+  await expect(editorShell).toBeVisible();
+  await expect(editorToolbar).toBeVisible();
+  await expect(jsonEditor).toHaveAttribute('contenteditable', 'true');
+  await expect(editorShell.getByText('1', { exact: true }).first()).toBeVisible();
+  await replaceEditorContent('{');
   await nameEditor.click();
-  await expect(dialog.getByText('JSON 语法错误', { exact: true })).toBeVisible();
   await expect(saveButton).toBeDisabled();
-  await jsonEditor.fill('{"inbounds":[],"outbounds":[],"label":"edge-label edge-label"}');
+  await replaceEditorContent('{"inbounds":[],"outbounds":[],"label":"edge-label edge-label"}');
   await nameEditor.fill('edge-nodes');
-  await expect(jsonEditor).toHaveValue('{\n  "inbounds": [],\n  "outbounds": [],\n  "label": "edge-label edge-label"\n}');
+  await expect.poll(() => jsonEditor.evaluate((element) => (element as HTMLElement).innerText)).toBe(
+    '{\n  "inbounds": [],\n  "outbounds": [],\n  "label": "edge-label edge-label"\n}',
+  );
   await expect(dialog.getByRole('button', { name: '格式化 JSON', exact: true })).toBeVisible();
   await jsonEditor.press('Control+f');
   const findInput = page.getByRole('textbox', { name: '查找', exact: true });
   await expect(findInput).toBeVisible();
   await findInput.fill('edge-label');
   await page.getByRole('button', { name: '下一个匹配项', exact: true }).click();
-  expect(await jsonEditor.evaluate((element) => (
-    element.value.slice(element.selectionStart, element.selectionEnd)
-  ))).toBe('edge-label');
+  await expect(editorShell.locator('[aria-live="polite"]')).toContainText('edge-label');
   await jsonEditor.press('Control+h');
   const replaceInput = page.getByRole('textbox', { name: '替换为', exact: true });
   await expect(replaceInput).toBeVisible();
@@ -488,12 +501,19 @@ test('React resources edit validated JSON with Mantine JsonInput', async ({ page
     expect(box.x).toBeGreaterThanOrEqual(0);
     expect(box.x + box.width).toBeLessThanOrEqual(320);
   }
+  for (const control of await editorToolbar.getByRole('button').all()) {
+    const box = await control.boundingBox();
+    expect(box).not.toBeNull();
+    expect(box!.width).toBeGreaterThanOrEqual(43.9);
+    expect(box!.height).toBeGreaterThanOrEqual(43.9);
+    expect(box!.x + box!.width).toBeLessThanOrEqual(320);
+  }
   await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(0);
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.getByRole('button', { name: '替换当前项', exact: true }).click();
-  await expect(jsonEditor).toHaveValue(/"label": "node-label edge-label"/);
+  await expect(jsonEditor).toContainText('"label": "node-label edge-label"');
   await page.getByRole('button', { name: '全部替换', exact: true }).click();
-  await expect(jsonEditor).toHaveValue(/"label": "node-label node-label"/);
+  await expect(jsonEditor).toContainText('"label": "node-label node-label"');
   await dialog.getByRole('textbox', { name: '备注', exact: true }).fill('Edge nodes');
   await saveButton.click();
 

@@ -1,11 +1,11 @@
 # v3.1 前端依赖与包体积基线
 
 记录日期：2026-07-30  
-当前状态：`v3.1.0-beta.2` 已切换为 React 单入口并完成正式版总 JS 预算收束；本文件保留迁移初始数据用于同口径比较。
+当前状态：`v3.1.0-beta.2` 已切换为 React 单入口，并按 ADR-058 完成普通应用、CodeMirror 编辑器与全部客户端 JS 的隔离预算；本文件保留迁移初始数据用于同口径比较。
 
 ## 依赖许可
 
-当前前端栈使用 React 19.2、Mantine 9.5、React Router、Zustand、i18next、dnd-kit、Lucide React 与 Zod。JSON 编辑使用 Mantine `JsonInput`，不再包含 CodeMirror。直接依赖的发布包采用 MIT、ISC 等宽松开源许可证，不需要许可证密钥、资格认证或年度续期。
+当前前端栈使用 React 19.2、Mantine 9.5、React Router、Zustand、i18next、dnd-kit、Lucide React、Zod 与精简的官方 CodeMirror 6 模块。CodeMirror 及其 Lezer 依赖均采用 MIT 许可证，不需要许可证密钥、资格认证或年度续期；没有引入第三方 React wrapper、`codemirror` 聚合包或 `basicSetup`。
 
 `npm run check:licenses` 扫描 lockfile 中所有非 dev 包，只接受当前审核过的宽松许可证表达式。新增其他许可证时检查会失败，必须先人工阅读发布包条款并更新 ADR，不能仅凭项目主页声明放行。
 
@@ -13,7 +13,7 @@
 
 | 许可证 | 包数量 |
 |---|---:|
-| MIT | 52 |
+| MIT | 68 |
 | BSD-3-Clause | 1 |
 | ISC | 1 |
 | 0BSD | 1 |
@@ -64,7 +64,7 @@ Beta 首屏通过原计划“不高于 3.0 入口 10%”的门槛，并通过路
 
 ## Beta.2 性能收束
 
-`v3.1.0-beta.2` 使用 Mantine `JsonInput` 替换 CodeMirror，并从 production dependencies 移除 16 个 CodeMirror/Lezer/辅助包。补齐轻量查找/替换后的相同 Vite 生产构建口径下，全部 `dist/assets/*.js` 为 283.30 KiB gzip，较 `v3.0.0` 的 248.53 KiB 增加约 14.0%，低于正式版 15% 上限 285.81 KiB。
+`v3.1.0-beta.2` 曾使用 Mantine `JsonInput` 替换 CodeMirror，并从 production dependencies 移除 16 个 CodeMirror/Lezer/辅助包。补齐轻量查找/替换后的相同 Vite 生产构建口径下，全部 `dist/assets/*.js` 为 283.30 KiB gzip，较 `v3.0.0` 的 248.53 KiB 增加约 14.0%，低于当时的单一 15% 上限 285.81 KiB。该阶段方案已由 ADR-058 取代，数据仅保留作同口径对照。
 
 `npm run check:bundle` 在 production build 后重新 gzip 所有客户端 JS chunk；`npm run verify` 已包含该门禁。主路由、资源、Profile 与其他 feature 继续按需加载，但预算不会因懒加载而忽略任何客户端功能代码。
 
@@ -82,6 +82,20 @@ Beta 首屏通过原计划“不高于 3.0 入口 10%”的门槛，并通过路
 CSS 与 `theme-init.js` 被工具列为 render-blocking，但预计 FCP/LCP 可节省时间均为 0 ms，因此不建议为该提示增加 preload、内联样式或新的拆包复杂度。Vite + 真实后端对照为 LCP 1553 ms、CLS 0.0001，其中 `/api/bootstrap` 约 1.1 秒；Ruleset build 状态请求约 3.5–4.7 秒但发生在 LCP 后，不属于首屏阻塞。
 
 资源弹窗的预览/编辑切换另以连续 12 个 `requestAnimationFrame` 采样，Dialog 的位置与尺寸误差均不超过 1 px。可见运动来自 Mantine `SegmentedControl` 原生指示器，而非 Modal 外框重排；保留该低成本反馈，不增加自定义动画或强制禁用 transition。以上数据没有 CrUX 实际用户样本，不能替代部署后的真实设备观察。
+
+## Beta.2 精简 CodeMirror 隔离预算与 DevTools 审计
+
+ADR-058 重新引入官方 CodeMirror 6 模块，但只在非规则集资源进入编辑态时动态加载。2026-07-31 的 Vite production build 与 zlib level 9 门禁结果为：
+
+| 范围 | gzip | 门禁 |
+|---|---:|---:|
+| 普通应用 JS（不含编辑器专用 chunk） | 283.20 KiB | 285.81 KiB |
+| `CodeEditor-*.js` 专用 chunk | 113.60 KiB | 120.00 KiB |
+| 全部客户端 JS | 396.80 KiB | 405.81 KiB |
+
+`npm run check:bundle` 要求构建结果恰好存在一个 `CodeEditor-*.js`，并分别检查上述三项。资源列表和预览态的 production 网络记录没有编辑器请求；首次切入编辑态才传输 CodeEditor JS 116,917 bytes 与 CSS 1,226 bytes，localhost 无限速下分别耗时约 12.0 ms 与 3.3 ms。
+
+生产构建通过只读真实后端代理，在 CPU 1×、无网络限速、真实大型节点 JSON 下测得 LCP 1647 ms、冷缓存交互 INP 40 ms、CLS 0.00。LCP 主要等待真实 `/api/bootstrap` 后再呈现资源内容，与编辑器 chunk 无关；CodeMirror 首次建立视口时存在约 120 ms 的内部强制布局，但异步发生在已绘制的固定高度加载区内，没有放大模式切换 INP，也没有改变 Dialog 或标题高度。320×900 下 Modal 为 320×900、页面/Dialog/编辑器外框横向溢出均为 0，搜索面板和全部工具栏控件均在视口内；连续三次关闭并重开后 `.cm-editor` 实例数始终为 1，控制台无 error、warn 或 issue。
 
 ## 安全审计状态
 

@@ -3,7 +3,7 @@
 更新日期：2026-07-31
 回滚基线：`3.0.0`
 当前候选：`3.1.0-beta.2`
-状态：`3.1.0-beta.1` 生产验证通过；FE-3161 已完成，`3.1.0-beta.2` 待用户部署验证。
+状态：`3.1.0-beta.2` 生产功能验证通过；FE-3163 的精简 CodeMirror 6 已完成本地自动化与真实浏览器验收，待用户检查保留的本地生产构建页面。
 
 ## 任务台账
 
@@ -30,6 +30,7 @@
 | FE-3160 | DONE | Beta.2 性能门禁、规则集来源控件与编辑器尺寸稳定性 |
 | FE-3161 | DONE | 空规则集区块默认折叠、轻量 JSON 查找/替换与 Chrome DevTools 性能审计 |
 | FE-3162 | DONE | 删除公开发布说明与版本入口，收敛 README/Wiki 文档边界 |
+| FE-3163 | DONE | 精简 CodeMirror 6、编辑器功能恢复与真实浏览器性能验收 |
 | FE-3152 | DONE | 默认入口切换 React 与 Vue 迁移栈清理 |
 | FE-3153 | DONE | `3.1.0-beta.1` 版本、公开文档与发布说明收束 |
 
@@ -38,7 +39,7 @@
 ## 当前验证基线
 
 - 生产前端：`index.html` 唯一入口挂载 React；Vue、PrimeVue、Pinia、Vue Router、Vue I18n、Tailwind、vuedraggable、旧 `.vue` 与迁移期 `react.html` 已清理。
-- 专业依赖：Lucide React 与 dnd-kit 分别保留图标和 Profile 排序能力；JSON 编辑使用 Mantine `JsonInput`，不再携带独立编辑器运行时。
+- 专业依赖：Lucide React 与 dnd-kit 分别保留图标和 Profile 排序能力；通用 JSON 编辑使用编辑态二级懒加载的官方 CodeMirror 6，Mantine 负责工具栏、加载态和 Modal 外框。
 - E2E：React 单入口共 11 个 Playwright 场景；Chromium 桌面/移动共 22 次执行通过，另有 Firefox 2 次专项通过。布局测试使用 role/label 或稳定 test id，不依赖 Mantine 私有 class。
 - Worker/shared/backend 不在 3.1 迁移范围。
 
@@ -217,6 +218,18 @@
 - 验证：公开 README、`docs/README.md` 与 `docs/wiki` 已无 `Release-3.1`、当前测试版、发布说明或 changelog 引用；`git diff --check` 通过。
 - 遗留风险：GitHub Wiki 若已发布旧版本页面，需要在后续同步 Wiki 内容时从远端单独删除；本任务只修改仓库中的 Wiki 源文件，不执行远端发布或部署。
 - 下一任务：用户验收当前 Beta.2 前端后决定是否部署。
+
+### 2026-07-31：FE-3163 精简 CodeMirror 6 与隔离性能验收
+
+- 完成内容：通用 JSON 编辑器改为直接使用官方 CodeMirror 6 模块，不使用第三方 React wrapper、`codemirror` 聚合包或 `basicSetup`；恢复行号、JSON 高亮、活动行、括号匹配、history、lint、显式/失焦格式化以及原生查找替换。Mantine 继续提供 44 px 撤销、重做、格式化、查找工具栏，工具栏固定在编辑器滚动区外；`Ctrl/Cmd+F` 与 `Ctrl/Cmd+H` 均可打开原生面板。
+- 加载与生命周期：资源列表和预览态不加载编辑器；仅非规则集资源进入编辑态时通过 `lazy`/`Suspense` 二级加载。Modal 关闭后销毁 `EditorView`；真实浏览器连续三次关闭重开时实例数始终为 1。新增 `preview:real-backend`，以与开发代理相同的只读守卫服务 production `dist`，只允许读取、登录、退出和临时 preview。
+- 包体积：普通应用 JS 为 283.20/285.81 KiB gzip，CodeEditor 专用 chunk 为 113.60/120.00 KiB gzip，全部客户端 JS 为 396.80/405.81 KiB gzip。`check:bundle` 要求恰好一个编辑器 chunk 并分别执行三项门禁；许可证扫描接受 68 个 MIT 包及既有宽松许可证，没有密钥或资格门槛。
+- 自动化验证：最终 `npm run verify` 在非受限环境完整通过，包括 lint、许可证、shared/web/worker typecheck、115 项 unit、66 项 integration、production build、三段 bundle 门禁、Chromium 桌面/移动 22 项与 Firefox 2 项 E2E。资源 E2E 覆盖行号、格式化、无效 JSON 禁止保存、原生查找替换、320 px 搜索/工具栏边界、44 px 控件、保存 payload、预览不加载编辑器及 12 帧 Dialog 几何稳定；移动资源场景额外连续执行两次通过。
+- Worker：`npm run worker:dry-run` 在非受限环境成功读取 57 个静态文件，上传预览 750.02 KiB / gzip 122.23 KiB，识别 `WORKSPACE_BUCKET` 后以 dry-run 退出；没有部署、发布、修改 R2 或轮换 Secret。
+- DevTools：production build + 真实后端只读代理下，资源列表和预览均无 CodeEditor 请求；冷缓存切换编辑时 JS/CSS 传输分别为 116,917/1,226 bytes，耗时约 12.0/3.3 ms。真实大型节点 JSON 场景 LCP 1647 ms、INP 40 ms、CLS 0.00，Dialog 与标题栏切换前后尺寸不变；320×900 下页面、Modal、编辑器与搜索面板横向溢出均为 0，控制台无 error/warn/issue。
+- 遗留风险：CodeMirror 首次创建视口仍有约 120 ms 的内部强制布局，但发生在懒加载后固定高度加载区内，没有阻塞模式切换的下一帧或造成 CLS；本地无 CrUX 数据，部署后仍应观察真实低端设备。当前改动尚未提交、推送、部署或发布。
+- 测试交接：production build 只读预览继续运行于 `http://127.0.0.1:8787/#/resources/nodes`，供用户检查 CodeMirror 编辑窗口。
+- 下一任务：用户完成视觉与键盘交互验收后，再决定是否提交或部署。
 
 ## 完成记录模板
 

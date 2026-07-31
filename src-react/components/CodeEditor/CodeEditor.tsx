@@ -16,7 +16,6 @@ interface CodeEditorProps {
   value: string;
   onChange: (value: string) => void;
   ariaLabel: string;
-  readOnly?: boolean;
 }
 
 function editorPhrases(language: string): Record<string, string> {
@@ -37,10 +36,6 @@ function editorPhrases(language: string): Record<string, string> {
   } : {};
 }
 
-function editableExtension(readOnly: boolean) {
-  return [EditorState.readOnly.of(readOnly), EditorView.editable.of(!readOnly)];
-}
-
 function formatDocument(view: EditorView) {
   try {
     const source = view.state.doc.toString();
@@ -53,18 +48,16 @@ function formatDocument(view: EditorView) {
   }
 }
 
-export default function CodeEditor({ value, onChange, ariaLabel, readOnly = false }: CodeEditorProps) {
+export default function CodeEditor({ value, onChange, ariaLabel }: CodeEditorProps) {
   const { t, i18n } = useTranslation();
   const colorScheme = useComputedColorScheme('light');
   const containerRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);
   const onChangeRef = useRef(onChange);
-  const readOnlyCompartment = useRef(new Compartment());
   const phrasesCompartment = useRef(new Compartment());
   const themeCompartment = useRef(new Compartment());
   const attributesCompartment = useRef(new Compartment());
   const initialValue = useRef(value);
-  const initialReadOnly = useRef(readOnly);
   const initialLanguage = useRef(i18n.language);
   const initialColorScheme = useRef(colorScheme);
   const initialAriaLabel = useRef(ariaLabel);
@@ -99,7 +92,7 @@ export default function CodeEditor({ value, onChange, ariaLabel, readOnly = fals
           ]),
           EditorView.domEventHandlers({
             blur: (_event, currentView) => {
-              if (!currentView.state.readOnly) formatDocument(currentView);
+              formatDocument(currentView);
               return false;
             },
           }),
@@ -117,7 +110,6 @@ export default function CodeEditor({ value, onChange, ariaLabel, readOnly = fals
           }),
           EditorState.tabSize.of(2),
           phrasesCompartment.current.of(EditorState.phrases.of(editorPhrases(initialLanguage.current))),
-          readOnlyCompartment.current.of(editableExtension(initialReadOnly.current)),
           themeCompartment.current.of(initialColorScheme.current === 'dark' ? oneDark : []),
           attributesCompartment.current.of(EditorView.contentAttributes.of({
             'aria-label': initialAriaLabel.current,
@@ -147,13 +139,6 @@ export default function CodeEditor({ value, onChange, ariaLabel, readOnly = fals
   useEffect(() => {
     const view = viewRef.current;
     if (view) {
-      view.dispatch({ effects: readOnlyCompartment.current.reconfigure(editableExtension(readOnly)) });
-    }
-  }, [readOnly]);
-
-  useEffect(() => {
-    const view = viewRef.current;
-    if (view) {
       view.dispatch({ effects: phrasesCompartment.current.reconfigure(EditorState.phrases.of(editorPhrases(i18n.language))) });
     }
   }, [i18n.language]);
@@ -177,44 +162,42 @@ export default function CodeEditor({ value, onChange, ariaLabel, readOnly = fals
 
   return (
     <div className={classes.root} data-testid="code-editor-shell">
-      {!readOnly && (
-        <Paper radius={0} px="xs" py={4} className={classes.toolbar} data-testid="code-editor-toolbar">
-          <Group gap={4} wrap="wrap">
-            <Tooltip label={t('common.undo')}>
-              <ActionIcon
-                size={44} variant="subtle" aria-label={t('common.undo')} disabled={!historyState.undo}
-                onClick={() => viewRef.current && undo(viewRef.current)}
-              >
-                <Undo2 size={17} />
-              </ActionIcon>
-            </Tooltip>
-            <Tooltip label={t('common.redo')}>
-              <ActionIcon
-                size={44} variant="subtle" aria-label={t('common.redo')} disabled={!historyState.redo}
-                onClick={() => viewRef.current && redo(viewRef.current)}
-              >
-                <Redo2 size={17} />
-              </ActionIcon>
-            </Tooltip>
-            <Tooltip label={t('common.formatJson')}>
-              <ActionIcon
-                size={44} variant="subtle" aria-label={t('common.formatJson')}
-                onClick={() => viewRef.current && formatDocument(viewRef.current)}
-              >
-                <WandSparkles size={17} />
-              </ActionIcon>
-            </Tooltip>
-            <Tooltip label={t('common.searchReplace')}>
-              <ActionIcon
-                size={44} variant="subtle" aria-label={t('common.searchReplace')} ms="auto"
-                onClick={() => viewRef.current && openSearchPanel(viewRef.current)}
-              >
-                <Search size={17} />
-              </ActionIcon>
-            </Tooltip>
-          </Group>
-        </Paper>
-      )}
+      <Paper radius={0} px="xs" py={4} className={classes.toolbar} data-testid="code-editor-toolbar">
+        <Group gap={4} wrap="wrap">
+          <Tooltip label={t('common.undo')}>
+            <ActionIcon
+              size={44} variant="subtle" aria-label={t('common.undo')} disabled={!historyState.undo}
+              onClick={() => viewRef.current && undo(viewRef.current)}
+            >
+              <Undo2 size={17} />
+            </ActionIcon>
+          </Tooltip>
+          <Tooltip label={t('common.redo')}>
+            <ActionIcon
+              size={44} variant="subtle" aria-label={t('common.redo')} disabled={!historyState.redo}
+              onClick={() => viewRef.current && redo(viewRef.current)}
+            >
+              <Redo2 size={17} />
+            </ActionIcon>
+          </Tooltip>
+          <Tooltip label={t('common.formatJson')}>
+            <ActionIcon
+              size={44} variant="subtle" aria-label={t('common.formatJson')}
+              onClick={() => viewRef.current && formatDocument(viewRef.current)}
+            >
+              <WandSparkles size={17} />
+            </ActionIcon>
+          </Tooltip>
+          <Tooltip label={t('common.searchReplace')}>
+            <ActionIcon
+              size={44} variant="subtle" aria-label={t('common.searchReplace')} ms="auto"
+              onClick={() => viewRef.current && openSearchPanel(viewRef.current)}
+            >
+              <Search size={17} />
+            </ActionIcon>
+          </Tooltip>
+        </Group>
+      </Paper>
       <div ref={containerRef} className={classes.editor} data-testid="code-editor-mount" />
     </div>
   );

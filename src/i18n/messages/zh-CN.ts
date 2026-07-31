@@ -37,7 +37,6 @@ export default {
     unsavedMessage: '关闭将丢失未保存的修改。',
     switchLanguage: '切换语言',
     switchTheme: '切换颜色模式',
-    releaseLabel: 'v3.1.0-beta.2 测试版',
   },
   auth: {
     setupTitle: '初始化工作区',
@@ -95,7 +94,6 @@ export default {
     copyJson: '复制 JSON 链接',
     copySrs: '复制 SRS 链接',
     reloadNotice: '已重新加载最新版本',
-    invalidJson: 'JSON 语法错误',
     jsonEditor: 'JSON 编辑器',
     invalidName: '名称只能包含字母、数字、点、下划线和连字符。',
     loadFailed: '加载失败',

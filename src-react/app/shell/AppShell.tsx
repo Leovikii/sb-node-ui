@@ -171,7 +171,7 @@ export function AppShell() {
         <Divider my="sm" />
         <MantineAppShell.Section>
           <Text c="dimmed" size="xs" px="sm">
-            {t('common.releaseLabel')}
+            v{__APP_VERSION__}
           </Text>
         </MantineAppShell.Section>
       </MantineAppShell.Navbar>

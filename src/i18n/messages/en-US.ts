@@ -37,7 +37,6 @@ export default {
     unsavedMessage: 'Closing discards unsaved changes.',
     switchLanguage: 'Switch language',
     switchTheme: 'Switch color scheme',
-    releaseLabel: 'v3.1.0-beta.2 beta',
   },
   auth: {
     setupTitle: 'Initialize workspace',
@@ -95,7 +94,6 @@ export default {
     copyJson: 'Copy JSON link',
     copySrs: 'Copy SRS link',
     reloadNotice: 'Reloaded the latest version',
-    invalidJson: 'Invalid JSON',
     jsonEditor: 'JSON editor',
     invalidName: 'Names may only contain letters, numbers, dots, underscores, and hyphens.',
     loadFailed: 'Load failed',

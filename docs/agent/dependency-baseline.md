@@ -1,7 +1,7 @@
 # v3.1 前端依赖与包体积基线
 
-记录日期：2026-07-30  
-当前状态：`v3.1.0-beta.2` 已切换为 React 单入口，并按 ADR-058 完成普通应用、CodeMirror 编辑器与全部客户端 JS 的隔离预算；本文件保留迁移初始数据用于同口径比较。
+记录日期：2026-07-31
+当前状态：`v3.1.0` 使用 React 单入口，并按 ADR-058 完成普通应用、CodeMirror 编辑器与全部客户端 JS 的隔离预算；本文件保留迁移初始数据用于同口径比较。
 
 ## 依赖许可
 
@@ -83,17 +83,17 @@ CSS 与 `theme-init.js` 被工具列为 render-blocking，但预计 FCP/LCP 可�
 
 资源弹窗的预览/编辑切换另以连续 12 个 `requestAnimationFrame` 采样，Dialog 的位置与尺寸误差均不超过 1 px。可见运动来自 Mantine `SegmentedControl` 原生指示器，而非 Modal 外框重排；保留该低成本反馈，不增加自定义动画或强制禁用 transition。以上数据没有 CrUX 实际用户样本，不能替代部署后的真实设备观察。
 
-## Beta.2 精简 CodeMirror 隔离预算与 DevTools 审计
+## 3.1.0 精简 CodeMirror 隔离预算与 DevTools 审计
 
 ADR-058 重新引入官方 CodeMirror 6 模块，但只在非规则集资源进入编辑态时动态加载。2026-07-31 的 Vite production build 与 zlib level 9 门禁结果为：
 
 | 范围 | gzip | 门禁 |
 |---|---:|---:|
-| 普通应用 JS（不含编辑器专用 chunk） | 283.20 KiB | 285.81 KiB |
-| `CodeEditor-*.js` 专用 chunk | 113.60 KiB | 120.00 KiB |
-| 全部客户端 JS | 396.80 KiB | 405.81 KiB |
+| 普通应用 JS（不含编辑器专用 chunk） | 283.16 KiB | 285.81 KiB |
+| `CodeEditor-*.js` 专用 chunk | 113.53 KiB | 120.00 KiB |
+| 全部客户端 JS | 396.69 KiB | 405.81 KiB |
 
-`npm run check:bundle` 要求构建结果恰好存在一个 `CodeEditor-*.js`，并分别检查上述三项。资源列表和预览态的 production 网络记录没有编辑器请求；首次切入编辑态才传输 CodeEditor JS 116,917 bytes 与 CSS 1,226 bytes，localhost 无限速下分别耗时约 12.0 ms 与 3.3 ms。
+`npm run check:bundle` 要求构建结果恰好存在一个 `CodeEditor-*.js`，并分别检查上述三项。资源列表和预览态的 production 网络记录没有编辑器请求；首次切入编辑态才传输 CodeEditor JS 116,847 bytes 与 CSS 1,226 bytes，localhost 无限速下分别耗时约 9.8 ms 与 3.2 ms。
 
 生产构建通过只读真实后端代理，在 CPU 1×、无网络限速、真实大型节点 JSON 下测得 LCP 1647 ms、冷缓存交互 INP 40 ms、CLS 0.00。LCP 主要等待真实 `/api/bootstrap` 后再呈现资源内容，与编辑器 chunk 无关；CodeMirror 首次建立视口时存在约 120 ms 的内部强制布局，但异步发生在已绘制的固定高度加载区内，没有放大模式切换 INP，也没有改变 Dialog 或标题高度。320×900 下 Modal 为 320×900、页面/Dialog/编辑器外框横向溢出均为 0，搜索面板和全部工具栏控件均在视口内；连续三次关闭并重开后 `.cm-editor` 实例数始终为 1，控制台无 error、warn 或 issue。
 

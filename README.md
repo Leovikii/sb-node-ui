@@ -4,6 +4,8 @@
 
 [简体中文](README_zh-CN.md) · [Wiki](https://github.com/Leovikii/Sing-Sub/wiki) · [License](LICENSE)
 
+![Version 3.1.0](https://img.shields.io/badge/version-3.1.0-e64980)
+
 Sing-Sub is a self-hosted control plane for editing and distributing [sing-box](https://sing-box.sagernet.org/) configurations.
 
 ## Features
@@ -14,6 +16,12 @@ Sing-Sub is a self-hosted control plane for editing and distributing [sing-box](
 - Distribute private configuration subscriptions with compact signed tokens and public rule sets as JSON or SRS.
 - Optionally import, back up, and explicitly synchronize data with a private GitHub repository.
 - Optionally provision a repository-scoped GitHub Actions workflow to compile SRS artifacts.
+
+## Technology
+
+- WebUI: React 19, Mantine 9, CodeMirror 6, TypeScript, and Vite.
+- Runtime and storage: Cloudflare Workers and private Cloudflare R2.
+- Optional integrations: private GitHub repository sync and GitHub Actions SRS compilation.
 
 ## Deployment
 

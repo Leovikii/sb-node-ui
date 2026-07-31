@@ -285,7 +285,7 @@ test('React entry initializes with a password-only request and guarded route', a
   expect(brandIconBox!.width).toBe(36);
   expect(brandIconBox!.height).toBe(36);
   await page.goto('/#/settings/about');
-  await expect(page.getByText('v3.1.0-beta.2', { exact: true })).toBeVisible();
+  await expect(page.getByText('v3.1.0', { exact: true })).toBeVisible();
 });
 
 test('React entry persists language and color scheme with native Mantine controls', async ({ page }) => {

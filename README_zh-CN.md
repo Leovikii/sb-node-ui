@@ -4,6 +4,8 @@
 
 [English](README.md) · [Wiki](https://github.com/Leovikii/Sing-Sub/wiki/HomeZH) · [许可证](LICENSE)
 
+![版本 3.1.0](https://img.shields.io/badge/version-3.1.0-e64980)
+
 Sing-Sub 是一个用于编辑和分发 [sing-box](https://sing-box.sagernet.org/) 配置的自托管控制台。
 
 ## 功能特色
@@ -14,6 +16,12 @@ Sing-Sub 是一个用于编辑和分发 [sing-box](https://sing-box.sagernet.org
 - 通过简短签名 Token 分发私有配置订阅，以 JSON 或 SRS 公开分发规则集。
 - 可选连接私有 GitHub 仓库，显式导入、备份和双向同步数据。
 - 可选自动安装仓库级 GitHub Actions workflow 编译 SRS 产物。
+
+## 技术栈
+
+- WebUI：React 19、Mantine 9、CodeMirror 6、TypeScript 与 Vite。
+- 运行时与存储：Cloudflare Workers 与私有 Cloudflare R2。
+- 可选集成：私有 GitHub 仓库同步与 GitHub Actions SRS 编译。
 
 ## 部署
 

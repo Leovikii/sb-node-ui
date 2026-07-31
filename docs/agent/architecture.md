@@ -16,7 +16,7 @@ Browser
 
 `shared`、Worker application/domain/infrastructure、HTTP API 和 R2 数据模型不因 3.1 前端迁移改变。React 只能依赖 shared contract 和 `src/api`，不得导入 Worker 实现。
 
-## 3.1 Beta 目录
+## 3.1 目录
 
 ```text
 src/
@@ -41,7 +41,7 @@ shared/                    # 浏览器与 Worker 共用 contract/schema
 worker/                    # 后端保持分层结构
 ```
 
-`v3.1.0-beta.2` 的默认入口直接指向 `src-react/main.tsx`。旧 Vue、PrimeVue、Pinia、Vue Router、Vue I18n、Tailwind、vuedraggable 与迁移期双入口均已删除；`src-react` 作为明确的浏览器 UI 边界保留，`src/api` 与 `src/i18n/messages` 继续提供框架无关共享模块。精简 CodeMirror 6 只作为非规则集资源进入编辑态后的二级懒加载边界，不进入认证首屏、资源列表或预览态。
+`v3.1.0` 的默认入口直接指向 `src-react/main.tsx`。旧 Vue、PrimeVue、Pinia、Vue Router、Vue I18n、Tailwind、vuedraggable 与迁移期双入口均已删除；`src-react` 作为明确的浏览器 UI 边界保留，`src/api` 与 `src/i18n/messages` 继续提供框架无关共享模块。精简 CodeMirror 6 只作为非规则集资源进入编辑态后的二级懒加载边界，不进入认证首屏、资源列表或预览态。
 
 ## 前端职责
 

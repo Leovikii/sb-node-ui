@@ -7,7 +7,6 @@
 - [Wiki 首页](./wiki/HomeZH.md)
 - [Cloudflare 部署](./wiki/DeploymentZH.md)
 - [适配器使用](./wiki/AdaptersZH.md)
-- [v3.1.0-beta.1 测试版说明](./wiki/Release-3.1.0-beta.1.md)
 - [English Wiki](./wiki/Home.md)
 
 ## 运维指南

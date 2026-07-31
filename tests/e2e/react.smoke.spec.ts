@@ -285,7 +285,7 @@ test('React entry initializes with a password-only request and guarded route', a
   expect(brandIconBox!.width).toBe(36);
   expect(brandIconBox!.height).toBe(36);
   await page.goto('/#/settings/about');
-  await expect(page.getByText('v3.1.0-beta.1', { exact: true })).toBeVisible();
+  await expect(page.getByText('v3.1.0', { exact: true })).toBeVisible();
 });
 
 test('React entry persists language and color scheme with native Mantine controls', async ({ page }) => {
@@ -428,7 +428,7 @@ test('React settings rotate tokens and connect repository with validated Mantine
   expect(state.compilerRequests[0].postDataJSON()).toEqual({ enabled: true });
 });
 
-test('React resources create a JSON asset through the lazy CodeMirror modal', async ({ page }) => {
+test('React resources edit validated JSON with lazy CodeMirror search and replace', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   const state = await mockReactApi(page);
   const noNotePath = 'sing-sub/nodes/client.json';
@@ -438,6 +438,7 @@ test('React resources create a JSON asset through the lazy CodeMirror modal', as
 
   await page.getByRole('link', { name: '资源', exact: true }).click();
   await expect(page.getByRole('heading', { name: '节点集' })).toBeVisible();
+  await expect(page.getByTestId('code-editor-shell')).toHaveCount(0);
   const noNoteCard = page.getByRole('article', { name: 'client', exact: true });
   await noNoteCard.getByRole('button', { name: '预览 client', exact: true }).click();
   const noNoteDialog = page.getByRole('dialog');
@@ -450,14 +451,71 @@ test('React resources create a JSON asset through the lazy CodeMirror modal', as
   await expect(noNoteDialog.getByText('名称', { exact: true })).toHaveCount(0);
   await expect(noNoteDialog.getByText('备注', { exact: true })).toHaveCount(0);
   await expect(noNoteDialog.getByText('无备注', { exact: true })).toHaveCount(0);
+  await expect(noNoteDialog.getByTestId('code-editor-shell')).toHaveCount(0);
   await noNoteDialog.getByRole('button', { name: '关闭', exact: true }).click();
   await expect(noNoteDialog).toBeHidden();
   await page.getByRole('button', { name: '新建', exact: true }).click();
 
   const dialog = page.getByRole('dialog');
-  await dialog.getByRole('textbox', { name: '名称', exact: true }).fill('edge-nodes');
+  const jsonEditor = dialog.getByRole('textbox', { name: 'JSON 编辑器', exact: true });
+  const editorShell = dialog.getByTestId('code-editor-shell');
+  const editorToolbar = dialog.getByTestId('code-editor-toolbar');
+  const nameEditor = dialog.getByRole('textbox', { name: '名称', exact: true });
+  const saveButton = dialog.getByRole('button', { name: '保存', exact: true });
+  const replaceEditorContent = async (content: string) => {
+    await jsonEditor.click();
+    await jsonEditor.press('Control+a');
+    await jsonEditor.press('Backspace');
+    await page.keyboard.insertText(content);
+  };
+  await expect(editorShell).toBeVisible();
+  await expect(editorToolbar).toBeVisible();
+  await expect(jsonEditor).toHaveAttribute('contenteditable', 'true');
+  await expect(editorShell.getByText('1', { exact: true }).first()).toBeVisible();
+  await replaceEditorContent('{');
+  await nameEditor.click();
+  await expect(saveButton).toBeDisabled();
+  await replaceEditorContent('{"inbounds":[],"outbounds":[],"label":"edge-label edge-label"}');
+  await nameEditor.fill('edge-nodes');
+  await expect.poll(() => jsonEditor.evaluate((element) => (element as HTMLElement).innerText)).toBe(
+    '{\n  "inbounds": [],\n  "outbounds": [],\n  "label": "edge-label edge-label"\n}',
+  );
+  await expect(dialog.getByRole('button', { name: '格式化 JSON', exact: true })).toBeVisible();
+  await jsonEditor.press('Control+f');
+  const findInput = page.getByRole('textbox', { name: '查找', exact: true });
+  await expect(findInput).toBeVisible();
+  await findInput.fill('edge-label');
+  await page.getByRole('button', { name: '下一个匹配项', exact: true }).click();
+  await expect(editorShell.locator('[aria-live="polite"]')).toContainText('edge-label');
+  await jsonEditor.press('Control+h');
+  const replaceInput = page.getByRole('textbox', { name: '替换为', exact: true });
+  await expect(replaceInput).toBeVisible();
+  await replaceInput.fill('node-label');
+  await page.setViewportSize({ width: 320, height: 900 });
+  const [findBox, replaceAllBox] = await Promise.all([
+    findInput.boundingBox(), page.getByRole('button', { name: '全部替换', exact: true }).boundingBox(),
+  ]);
+  expect(findBox).not.toBeNull();
+  expect(replaceAllBox).not.toBeNull();
+  for (const box of [findBox!, replaceAllBox!]) {
+    expect(box.x).toBeGreaterThanOrEqual(0);
+    expect(box.x + box.width).toBeLessThanOrEqual(320);
+  }
+  for (const control of await editorToolbar.getByRole('button').all()) {
+    const box = await control.boundingBox();
+    expect(box).not.toBeNull();
+    expect(box!.width).toBeGreaterThanOrEqual(43.9);
+    expect(box!.height).toBeGreaterThanOrEqual(43.9);
+    expect(box!.x + box!.width).toBeLessThanOrEqual(320);
+  }
+  await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(0);
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.getByRole('button', { name: '替换当前项', exact: true }).click();
+  await expect(jsonEditor).toContainText('"label": "node-label edge-label"');
+  await page.getByRole('button', { name: '全部替换', exact: true }).click();
+  await expect(jsonEditor).toContainText('"label": "node-label node-label"');
   await dialog.getByRole('textbox', { name: '备注', exact: true }).fill('Edge nodes');
-  await dialog.getByRole('button', { name: '保存', exact: true }).click();
+  await saveButton.click();
 
   await expect.poll(() => state.fileRequests.length).toBe(1);
   const payload = state.fileRequests[0].postDataJSON();
@@ -513,10 +571,37 @@ test('React resources create a JSON asset through the lazy CodeMirror modal', as
   expect(modeGeometry).not.toBeNull();
   expect(Math.abs(modeGeometry!.indicatorX - modeGeometry!.labelX)).toBeLessThanOrEqual(1);
   expect(Math.abs(modeGeometry!.indicatorWidth - modeGeometry!.labelWidth)).toBeLessThanOrEqual(1);
+  const [previewHeaderBox, previewDialogBox] = await Promise.all([
+    previewHeader.boundingBox(), previewDialog.boundingBox(),
+  ]);
   await previewDialog.getByText('编辑', { exact: true }).click();
+  const transitionDialogBoxes = await page.evaluate(async () => {
+    const samples: Array<{ x: number; y: number; width: number; height: number }> = [];
+    for (let index = 0; index < 12; index += 1) {
+      await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+      const rect = document.querySelector<HTMLElement>('[role="dialog"]')?.getBoundingClientRect();
+      if (rect) samples.push({ x: rect.x, y: rect.y, width: rect.width, height: rect.height });
+    }
+    return samples;
+  });
   await expect(previewHeader.getByRole('textbox', { name: '名称', exact: true })).toHaveValue('edge-nodes');
   await expect(previewHeader.getByRole('textbox', { name: '备注', exact: true })).toHaveValue('Edge nodes');
   await expect(previewDialog.getByRole('button', { name: '保存', exact: true })).toBeVisible();
+  const [editHeaderBox, editDialogBox] = await Promise.all([
+    previewHeader.boundingBox(), previewDialog.boundingBox(),
+  ]);
+  expect(previewHeaderBox).not.toBeNull();
+  expect(previewDialogBox).not.toBeNull();
+  expect(editHeaderBox).not.toBeNull();
+  expect(editDialogBox).not.toBeNull();
+  expect(Math.abs(previewHeaderBox!.height - editHeaderBox!.height)).toBeLessThanOrEqual(1);
+  expect(Math.abs(previewDialogBox!.height - editDialogBox!.height)).toBeLessThanOrEqual(1);
+  for (const sample of transitionDialogBoxes) {
+    expect(Math.abs(sample.x - previewDialogBox!.x)).toBeLessThanOrEqual(1);
+    expect(Math.abs(sample.y - previewDialogBox!.y)).toBeLessThanOrEqual(1);
+    expect(Math.abs(sample.width - previewDialogBox!.width)).toBeLessThanOrEqual(1);
+    expect(Math.abs(sample.height - previewDialogBox!.height)).toBeLessThanOrEqual(1);
+  }
   await page.getByRole('dialog').getByRole('button', { name: '关闭', exact: true }).click();
 
   await page.setViewportSize({ width: 320, height: 900 });
@@ -739,7 +824,18 @@ test('React rulesets edit structured sources and manual rules, retry builds, and
   const state = await mockReactApi(page);
   const path = 'sing-sub/rulesets/smoke-rules.json';
   state.rulesets = [{ path, note: 'Smoke rules' }];
-  state.contents[path] = JSON.stringify({ version: 2, rules: [], _sing_sub: { note: 'Smoke rules', sources: [] } }, null, 2);
+  state.contents[path] = JSON.stringify({
+    version: 2,
+    rules: [],
+    _sing_sub: {
+      note: 'Smoke rules',
+      sources: [{
+        url: 'https://example.com/rules.json',
+        interval_hours: 168,
+        last_updated: '2026-07-30T12:34:00.000Z',
+      }],
+    },
+  }, null, 2);
   state.buildStatus = 'failed';
   await login(page, state);
 
@@ -750,12 +846,51 @@ test('React rulesets edit structured sources and manual rules, retry builds, and
   await expect.poll(() => state.buildRequests.length).toBe(1);
   await expect(card.getByRole('button', { name: '复制 SRS 链接', exact: true })).toBeVisible();
 
+  await page.getByRole('button', { name: '新建', exact: true }).click();
+  const newDialog = page.getByRole('dialog');
+  for (const sectionName of [
+    'SOURCE 每行一个 HTTPS URL。',
+    'DOMAIN 每行一个完整域名。',
+    'DOMAIN_SUFFIX 每行一个域名后缀。',
+    'DOMAIN_KEYWORD 每行一个域名关键字。',
+    'DOMAIN_REGEX 每行一个 RE2 域名正则表达式。',
+  ]) {
+    await expect(newDialog.getByRole('button', { name: sectionName, exact: true })).toHaveAttribute('aria-expanded', 'false');
+  }
+  await newDialog.getByRole('button', { name: '取消', exact: true }).click();
+
   await card.getByRole('button', { name: '编辑', exact: true }).click();
   const dialog = page.getByRole('dialog');
-  await dialog.getByRole('textbox', { name: 'SOURCE', exact: true }).fill('https://example.com/rules.json');
-  await dialog.getByRole('combobox', { name: '更新周期', exact: true }).click();
+  await expect(dialog.getByText('SOURCE', { exact: true })).toHaveCount(1);
+  await expect(dialog.getByText('DOMAIN', { exact: true })).toHaveCount(1);
+  await expect(dialog.getByText('更新周期', { exact: true })).toHaveCount(0);
+  await expect(dialog.getByRole('button', { name: 'SOURCE 每行一个 HTTPS URL。', exact: true })).toHaveAttribute('aria-expanded', 'true');
+  const domainSection = dialog.getByRole('button', { name: 'DOMAIN 每行一个完整域名。', exact: true });
+  await expect(domainSection).toHaveAttribute('aria-expanded', 'false');
+  await expect(dialog.getByRole('textbox', { name: 'SOURCE', exact: true })).toHaveValue('https://example.com/rules.json');
+  const sourceControls = dialog.getByTestId('ruleset-source-controls');
+  const intervalSelect = dialog.getByRole('combobox', { name: '更新周期', exact: true });
+  const sourceDelete = dialog.getByRole('button', { name: '删除 SOURCE', exact: true });
+  await expect(sourceControls.getByText('最近更新', { exact: false })).toContainText('2026');
+  expect(await intervalSelect.evaluate((element) => Boolean(element.closest('[data-testid="ruleset-source-controls"]')))).toBe(true);
+  expect(await sourceDelete.evaluate((element) => Boolean(element.closest('[data-testid="ruleset-source-controls"]')))).toBe(true);
+  await intervalSelect.click();
   await page.getByRole('option', { name: '每天', exact: true }).click();
+  await domainSection.click();
   await dialog.getByRole('textbox', { name: 'DOMAIN', exact: true }).fill('example.com\nwww.example.com');
+  await page.setViewportSize({ width: 320, height: 900 });
+  expect(await dialog.evaluate((element) => element.scrollWidth - element.clientWidth)).toBeLessThanOrEqual(0);
+  const [dialogBox, sourceControlsBox, intervalBox, sourceDeleteBox] = await Promise.all([
+    dialog.boundingBox(), sourceControls.boundingBox(), intervalSelect.boundingBox(), sourceDelete.boundingBox(),
+  ]);
+  expect(dialogBox).not.toBeNull();
+  expect(sourceControlsBox).not.toBeNull();
+  expect(intervalBox).not.toBeNull();
+  expect(sourceDeleteBox).not.toBeNull();
+  for (const box of [sourceControlsBox!, intervalBox!, sourceDeleteBox!]) {
+    expect(box.x).toBeGreaterThanOrEqual(dialogBox!.x);
+    expect(box.x + box.width).toBeLessThanOrEqual(dialogBox!.x + dialogBox!.width + 1);
+  }
   await dialog.getByRole('button', { name: '保存', exact: true }).click();
 
   await expect.poll(() => state.fileRequests.length).toBe(1);
@@ -765,7 +900,11 @@ test('React rulesets edit structured sources and manual rules, retry builds, and
     version: 2,
     _sing_sub: {
       note: 'Smoke rules',
-      sources: [{ url: 'https://example.com/rules.json', interval_hours: 24 }],
+      sources: [{
+        url: 'https://example.com/rules.json',
+        interval_hours: 24,
+        last_updated: '2026-07-30T12:34:00.000Z',
+      }],
       manual: { domain: ['example.com', 'www.example.com'] },
     },
   });

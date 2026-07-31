@@ -11,5 +11,3 @@ Sing Sub 是一个用于编辑和分发 sing-box 配置的自托管控制台。C
 - [发布与恢复](https://github.com/Leovikii/Sing-Sub/blob/main/docs/operations/release-and-recovery.md)
 - [GitHub 同步](https://github.com/Leovikii/Sing-Sub/blob/main/docs/operations/github-sync.md)
 - [SRS 编译器](https://github.com/Leovikii/Sing-Sub/blob/main/docs/operations/srs-compiler.md)
-
-当前测试版：[`v3.1.0-beta.1`](Release-3.1.0-beta.1)。测试期间，上一稳定版 `v3.0.0` 继续作为回滚基线。

@@ -25,10 +25,15 @@
 | ADR-052 | ACCEPTED | 迁移采用短期双构建、单生产入口；不在运行时桥接 Vue 与 React。 |
 | ADR-053 | ACCEPTED | `3.1.0-beta.1` 切换默认入口到 React，并删除已无调用方的 Vue 迁移栈；`3.0.0` 保留为代码回滚基线。 |
 | ADR-054 | ACCEPTED | 资源与 Profile 编辑器统一以实体名称为主标题、类型为辅助信息；预览态元数据只读，操作区独立于可滚动内容。 |
+| ADR-055 | SUPERSEDED | JSON 资源编辑改用 Mantine `JsonInput`；由 ADR-058 取代。 |
+| ADR-056 | SUPERSEDED | Mantine `JsonInput` 的轻量查找/替换；由 ADR-058 取代。 |
+| ADR-057 | ACCEPTED | 根 README 可展示当前稳定版本与用户相关技术栈；README/Wiki 不维护发布说明、更新日志或开发过程记录。 |
+| ADR-058 | ACCEPTED | JSON 编辑重新采用精简的官方 CodeMirror 6，编辑态懒加载并对应用与编辑器 chunk 分别执行预算门禁。 |
+| ADR-059 | ACCEPTED | `3.1.0` 在 Beta 生产验证、完整回归、依赖与性能审计通过后作为稳定版准备发布。 |
 
 ## ADR-050：React 19 + Mantine 9
 
-3.1.0 使用 React 19、Mantine 9、React Router、Zustand、react-i18next、`@mantine/form`、dnd-kit、CodeMirror 和 Lucide React。
+3.1.0 使用 React 19、Mantine 9、React Router、Zustand、react-i18next、`@mantine/form`、dnd-kit、精简 CodeMirror 6 和 Lucide React；JSON 编辑器的最终选型见 ADR-058。
 
 本决策取代原 ADR-001 至 ADR-006 中的 Vue/PrimeVue/Pinia/Vue Router/Vue I18n 选型，取代 ADR-014 的 Tailwind 布局选型，并取代 ADR-039/040 的 PrimeVue/Vue 专属 UI 实现。后端、shared contract、路由 URL、用户能力和数据语义保持不变。
 
@@ -57,4 +62,40 @@ Beta 切换是对正式版总包体积门槛的有限例外：首屏、功能回
 资源与 Profile 弹窗采用相同的信息层级：已有实体以名称作为主标题，资源类型或“配置”只用 Mantine `Badge` 作为辅助上下文；新建实体以“新建…”作为主标题。类型不能取代实体名称，因为名称才是用户在列表和编辑流程中识别对象的稳定标识。
 
 类型、名称、备注与关闭按钮统一位于 Mantine `Modal.Header`：预览态名称按内容占宽，非空备注紧随其后并保持左对齐；编辑态在相同位置原位切换为名称和备注输入框，Modal Body 不再重复渲染元数据。模式切换与底部操作区位于可滚动业务内容之外，长表单和代码预览统一使用 Mantine `ScrollArea` 独立滚动，避免取消和保存按钮随内容离开视口。移动端继续使用全屏 Modal，ScrollArea 通过 Mantine 弹性布局填满标题与操作区之间的剩余高度，不实现自定义 sticky、滚动锁或 overlay。
+
+## ADR-055：用 Mantine JsonInput 收束 JSON 编辑器体积
+
+`3.1.0-beta.2` 将通用 JSON 资源编辑器从 CodeMirror 6 替换为 Mantine `JsonInput`。保留受控编辑、JSON 语法校验、失焦格式化、等宽字体、原生键盘撤销/重做、只读预览和保存前完整解析；不再提供 CodeMirror 专属行号、语法高亮、内嵌搜索面板和工具栏按钮。
+
+原因：CodeMirror 及其 commands、language、lint、search、state、theme、view 依赖形成约 116.8 KiB gzip 的二级懒加载代码，是全客户端 JS 超出正式版预算的决定性来源。`JsonInput` 已包含在锁定的 Mantine 运行时中，功能覆盖当前业务正确性所需能力，也更符合“优先组件库原生能力、减少自定义实现”的迁移原则。
+
+构建后必须自动计算 `dist/assets/*.js` 的 gzip 总量，并维持不高于 `v3.0.0` 全客户端 JS 基线 248.53 KiB 的 115%，即 285.81 KiB。该门禁衡量全部懒加载功能，而不只衡量首屏入口；修改预算需要新的显式决策。
+
+## ADR-056：Mantine 原生 JSON 查找与替换
+
+通用 JSON 编辑继续使用 Mantine `JsonInput`，并以 Mantine `ActionIcon`、`Tooltip`、`Popover`、`TextInput` 和原生 `textarea` 选择 API 提供显式格式化、字面量查找与替换控件。编辑器聚焦时，`Ctrl/Cmd+F` 打开查找，`Ctrl/Cmd+H` 打开替换；控件支持上一个、下一个、替换当前项和全部替换。失焦格式化、JSON 语法校验、保存前完整解析与原生撤销/重做继续保留。
+
+该能力属于具有明确业务语义的薄组件，不自研输入框、弹层、焦点管理或快捷键框架，不新增运行时依赖，也不恢复 CodeMirror 的行号、语法高亮、lint worker 或搜索运行时。新增代码必须继续通过 ADR-055 的 285.81 KiB 全客户端 JS gzip 门禁；不得为恢复搜索功能提高预算。
+
+## ADR-057：公开文档不承担版本日志职责
+
+根目录中英文 README 与 `docs/wiki` 只面向用户介绍产品能力，并提供部署、配置和日常使用说明。根 README 可以显示来自 package metadata 的当前稳定版本徽章，并以简短章节说明用户部署和运维相关的技术栈；这不等同于发布历史。README 与 Wiki 不保存发布说明、更新日志、迁移任务、包体积、依赖审计、自动化测试过程或 Agent 开发记录。
+
+版本与工程状态继续保存在应用包元数据和 `docs/agent`；部署与恢复的长期操作步骤保存在 `docs/operations`。发布历史如有需要使用 Git tag、GitHub Release 或 Git 历史，不在 Wiki 中建立逐版本页面。
+
+## ADR-058：精简 CodeMirror 6 与隔离性能预算
+
+产品负责人确认行号、JSON 语法高亮、括号匹配和可发现的查找/替换属于正式编辑能力。Mantine `JsonInput` 基于原生 `textarea`，无法在不自研滚动同步、高亮覆盖层和行号栏的情况下可靠提供这些能力，因此 ADR-055 与 ADR-056 被本决策取代。
+
+编辑器直接使用 CodeMirror 官方 MIT 模块，不引入第三方 React wrapper，也不使用 `codemirror` 聚合包或 `basicSetup`。首批只启用行号、JSON 解析与高亮、括号匹配、历史、格式化、lint 和原生查找/替换；不启用自动补全、折叠、多光标附加 UI 或 IDE 级功能。Mantine 只负责编辑器外层工具栏、加载态和 Modal；CodeMirror 负责代码输入、滚动、选择和搜索面板。
+
+CodeMirror 只能在非规则集资源进入编辑状态后动态加载；资源列表和预览不得请求编辑器 chunk。普通应用 JS gzip 继续不高于 285.81 KiB，CodeMirror 专用懒加载 JS gzip 不高于 120 KiB，总客户端 JS gzip 不高于 405.81 KiB。构建门禁必须分别报告三项；修改预算需要新的显式决策。编辑器实例在一次 Modal 会话中保持稳定，关闭时销毁并释放监听器。
+
+## ADR-059：3.1.0 稳定版发布准备
+
+产品负责人确认 `3.1.0-beta.2` 已在生产完成主要功能验证，FE-3163 的 CodeMirror 版本也已完成真实后端只读浏览器验收，未发现新的功能、布局或交互问题。正式版继续保持 React/Mantine 单入口、Worker/API/R2/revision/SRS/GitHub sync 语义不变，`3.0.0` 仍是代码回滚基线。
+
+`3.1.0` 发布门槛采用 ADR-058 的三段 JavaScript 预算，取代 ADR-053 测试版阶段的单一 15% 总量例外；同时要求完整 `npm run verify`、生产依赖许可证检查、Worker dry-run、生产构建真实浏览器性能与移动端边界全部通过。React Router 的现有 high advisory 仅影响未使用的 RSC Mode，本项目没有 RSC、Server Action 或服务端 action endpoint，且上游没有修复版本，因此记录为不可达的已审阅风险，不阻断浏览器 SPA 发布。
+
+本决策只授权把仓库内容和版本元数据准备为 `3.1.0`。Git push、tag、GitHub Release、Cloudflare 部署、Secret 变更和 R2 写入仍需单独明确授权。
 

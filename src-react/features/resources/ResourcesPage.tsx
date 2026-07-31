@@ -367,8 +367,11 @@ export function ResourcesPage({ type }: { type: ResourceType }) {
                       </ScrollArea>
                     ) : <Center h="52dvh"><Loader /></Center>
                   ) : editor.mode === 'edit' ? (
-                    <Suspense fallback={<Center h="52dvh"><Loader /></Center>}>
-                      <CodeEditor value={editor.content} onChange={(content) => setEditor((current) => current ? { ...current, content } : current)} />
+                    <Suspense fallback={<Center h="52dvh" role="status" aria-label={t('common.loading')}><Loader /></Center>}>
+                      <CodeEditor
+                        ariaLabel={t('assets.jsonEditor')} value={editor.content}
+                        onChange={(content) => setEditor((current) => current ? { ...current, content } : current)}
+                      />
                     </Suspense>
                   ) : (
                     <ScrollArea h="52dvh" type="auto"><Code block aria-label={t('assets.previewJson')}>{editor.content}</Code></ScrollArea>

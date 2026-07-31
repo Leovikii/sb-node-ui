@@ -2,8 +2,8 @@
 
 更新日期：2026-07-31
 回滚基线：`3.0.0`
-当前候选：`3.1.0-beta.1`
-状态：React/Mantine Beta 已部署生产并完成初步功能验证；FE-3159 已完成并保留真实后端页面供用户验收。
+当前版本：`3.1.0`
+状态：`3.1.0` 正式版发布准备完成；尚未推送、打 tag、发布或部署。
 
 ## 任务台账
 
@@ -20,13 +20,18 @@
 | FE-3130–FE-3133 | DONE | 资源、CodeMirror、Ruleset 编辑与构建状态 |
 | FE-3140–FE-3144 | DONE | Profile 与 GitHub Sync |
 | FE-3150 | DONE | 完整桌面、移动端、双语、Firefox 与键盘回归 |
-| FE-3151 | IN_PROGRESS | 包体积、首帧与性能验收 |
+| FE-3151 | DONE | 包体积、首帧与性能验收 |
 | FE-3154 | DONE | 卡片整面预览交互、Profile 拖曳层级与资源移动端布局优化 |
 | FE-3155 | DONE | 资源预览切换控件首帧修复与 AppShell 品牌图标 |
 | FE-3156 | DONE | Profile 筛选节点协议标签与移动端排版 |
 | FE-3157 | DONE | 资源/Profile 编辑器标题、只读预览元数据与固定操作区统一 |
 | FE-3158 | DONE | 编辑器标题行元数据收敛与预览/编辑原位切换 |
 | FE-3159 | DONE | 编辑器预览标题紧凑排列与移动端弹性滚动区 |
+| FE-3160 | DONE | Beta.2 性能门禁、规则集来源控件与编辑器尺寸稳定性 |
+| FE-3161 | DONE | 空规则集区块默认折叠、轻量 JSON 查找/替换与 Chrome DevTools 性能审计 |
+| FE-3162 | DONE | 删除公开发布说明与版本入口，收敛 README/Wiki 文档边界 |
+| FE-3163 | DONE | 精简 CodeMirror 6、编辑器功能恢复与真实浏览器性能验收 |
+| FE-3164 | DONE | `3.1.0` 正式版发布审计、版本收束与遗留清理 |
 | FE-3152 | DONE | 默认入口切换 React 与 Vue 迁移栈清理 |
 | FE-3153 | DONE | `3.1.0-beta.1` 版本、公开文档与发布说明收束 |
 
@@ -35,7 +40,7 @@
 ## 当前验证基线
 
 - 生产前端：`index.html` 唯一入口挂载 React；Vue、PrimeVue、Pinia、Vue Router、Vue I18n、Tailwind、vuedraggable、旧 `.vue` 与迁移期 `react.html` 已清理。
-- 专业依赖：CodeMirror、Lucide React 与 dnd-kit 分别保留代码编辑、图标和 Profile 排序能力。
+- 专业依赖：Lucide React 与 dnd-kit 分别保留图标和 Profile 排序能力；通用 JSON 编辑使用编辑态二级懒加载的官方 CodeMirror 6，Mantine 负责工具栏、加载态和 Modal 外框。
 - E2E：React 单入口共 11 个 Playwright 场景；Chromium 桌面/移动共 22 次执行通过，另有 Firefox 2 次专项通过。布局测试使用 role/label 或稳定 test id，不依赖 Mantine 私有 class。
 - Worker/shared/backend 不在 3.1 迁移范围。
 
@@ -186,6 +191,59 @@
 - 测试交接：`npm run dev:real-backend` 保持运行，浏览器保留 `http://127.0.0.1:8787/#/profiles` 的 `zio` Profile 编辑窗口供用户验收；测试未修改字段或保存生产数据。
 - 遗留风险：FE-3158/FE-3159 尚未部署生产；FE-3151 的正式版总 JS 预算仍未完成。
 - 下一任务：用户完成视觉验收后部署本批 UI 修复，随后继续 FE-3151 体积收束。
+
+### 2026-07-31：FE-3151/FE-3160 Beta.2 性能与规则集 UI 收束
+
+- 完成内容：通用 JSON 编辑器改用 Mantine `JsonInput`，移除 16 个 CodeMirror/Lezer 生产依赖；新增全客户端 JS gzip 自动预算门禁。规则集来源区只保留 Accordion 顶部类型 Badge，将最近更新时间、更新周期和删除操作合并到底部控件区，并在修改周期时保留 `last_updated`。共享编辑器标题行增加稳定最小高度，预览/编辑切换不再改变 Modal 外框尺寸。
+- 文件/模块：`src-react/features/resources`、`src-react/components/EntityEditorChrome.tsx`、`scripts/check-bundle-budget.mjs`、React E2E、双语词条、版本与 Beta.2 公开文档。
+- 性能：全部客户端 JS 为 281.87 KiB gzip，较 `v3.0.0` 的 248.53 KiB 增加约 13.4%，低于 15% 上限 285.81 KiB；`npm run verify` 已包含该门禁。
+- 验证：完整 `npm run verify` 通过，包括 lint、许可证、shared/web/worker typecheck、115 项 unit、66 项 integration、production build、Chromium 桌面/移动 22 项和 Firefox 2 项 E2E。`npm run worker:dry-run` 读取 48 个静态文件，上传预览 750.02 KiB / gzip 122.23 KiB，识别 `WORKSPACE_BUCKET` 后以 dry-run 退出。
+- 真实后端只读验收：About 显示 `v3.1.0-beta.2`；规则集桌面预览/编辑 Dialog 高度差为 0 px；`SOURCE`/`DOMAIN` 各只有一个可见标题；最近更新时间恢复显示；更新周期与 44 px 删除按钮处于同一控件区。320×700 下 Dialog 为 320×700、页面横向溢出为 0，控件区未越界；控制台无 error/warn，未保存或修改生产数据。
+- 性能工具：Chrome DevTools MCP 已安装到本地 Codex 配置；当前进程不能热加载新 MCP，Core Web Vitals 与网络 trace 需重启 Codex 后作为补充测量执行，不记录未采集的指标，也不影响已经量化并自动门禁的总 JS 结论。
+- 遗留风险：`3.1.0-beta.2` 尚未部署、推送、打 tag 或发布；真实保存、Ruleset 外部抓取、GitHub sync 与 SRS 仍由用户在实际部署后验证。
+- 下一任务：用户验收保留的本地规则集编辑窗口，并决定是否部署 Beta.2。
+
+### 2026-07-31：FE-3161 JSON 编辑体验与渲染性能复核
+
+- 完成内容：规则集只默认展开具有内容的类型区块，空区块和新建规则集保持折叠；Mantine `JsonInput` 增加显式格式化、`Ctrl/Cmd+F` 查找和 `Ctrl/Cmd+H` 替换，并使用 Mantine Popover 提供上一个、下一个、替换当前项和全部替换操作。未恢复 CodeMirror或新增运行时依赖。
+- 性能结论：Wrangler production build 的本地已登录资源页测得 LCP 554 ms、INP 13 ms、CLS 0.00，最大关键请求链 212 ms；CSS 与 `theme-init.js` 虽被识别为 render-blocking，但预计 FCP/LCP 收益均为 0 ms，不继续优化。Vite + 真实后端仅作为开发环境对照，LCP 1553 ms、CLS 0.0001，约 1.1 秒的 `/api/bootstrap` 是主要差异。
+- 切换审计：资源弹窗从预览切到 JSON 编辑时，连续 12 个 animation frame 的外框 `x/y/width/height` 与切换前误差均不超过 1 px，标题栏和最终 Dialog 高度误差也不超过 1 px。肉眼变化来自 Mantine `SegmentedControl` 原生指示动画和内容替换，不是 Modal 重排抖动，因此不禁用该提示动画。
+- 验证：lint、shared/web/worker typecheck、115 项 unit、66 项 integration、production build、全客户端 JS gzip 门禁、Chromium 桌面/移动 22 项和 Firefox 2 项专项均通过；最终全客户端 JS 为 283.30 KiB gzip，低于 285.81 KiB 上限。受限环境内完整 verify 的 Firefox 启动曾命中已知 `_page` 错误，同两项在受限环境外重跑通过。
+- 遗留风险：性能数据来自 CPU 1×、无网络限速的 localhost，且无 CrUX 实际用户数据；`3.1.0-beta.2` 尚未部署、推送、打 tag 或发布，真实保存、外部规则抓取、GitHub sync 与 SRS 仍由用户在实际部署后验证。
+- 下一任务：用户验收 Beta.2 的规则集折叠、JSON 查找/替换和切换视觉，再决定是否部署测试版。
+
+### 2026-07-31：FE-3162 公开文档边界收束
+
+- 完成内容：删除 Beta.1/Beta.2 中英文发布说明及 README、Wiki 首页、侧栏和用户文档索引中的版本入口；根目录中英文 README 同时移除技术栈和开发命令，只保留产品能力、部署使用入口与许可证。
+- 当时约束：ADR-057 锁定根 README 与 `docs/wiki` 不维护版本入口、发布说明、更新日志或开发记录；FE-3164 后允许根 README 展示当前稳定版本徽章和面向用户的技术栈，其他边界不变。
+- 验证：公开 README、`docs/README.md` 与 `docs/wiki` 已无 `Release-3.1`、当前测试版、发布说明或 changelog 引用；`git diff --check` 通过。
+- 遗留风险：GitHub Wiki 若已发布旧版本页面，需要在后续同步 Wiki 内容时从远端单独删除；本任务只修改仓库中的 Wiki 源文件，不执行远端发布或部署。
+- 下一任务：用户验收当前 Beta.2 前端后决定是否部署。
+
+### 2026-07-31：FE-3163 精简 CodeMirror 6 与隔离性能验收
+
+- 完成内容：通用 JSON 编辑器改为直接使用官方 CodeMirror 6 模块，不使用第三方 React wrapper、`codemirror` 聚合包或 `basicSetup`；恢复行号、JSON 高亮、活动行、括号匹配、history、lint、显式/失焦格式化以及原生查找替换。Mantine 继续提供 44 px 撤销、重做、格式化、查找工具栏，工具栏固定在编辑器滚动区外；`Ctrl/Cmd+F` 与 `Ctrl/Cmd+H` 均可打开原生面板。
+- 加载与生命周期：资源列表和预览态不加载编辑器；仅非规则集资源进入编辑态时通过 `lazy`/`Suspense` 二级加载。Modal 关闭后销毁 `EditorView`；真实浏览器连续三次关闭重开时实例数始终为 1。新增 `preview:real-backend`，以与开发代理相同的只读守卫服务 production `dist`，只允许读取、登录、退出和临时 preview。
+- 包体积：普通应用 JS 为 283.20/285.81 KiB gzip，CodeEditor 专用 chunk 为 113.60/120.00 KiB gzip，全部客户端 JS 为 396.80/405.81 KiB gzip。`check:bundle` 要求恰好一个编辑器 chunk 并分别执行三项门禁；许可证扫描接受 68 个 MIT 包及既有宽松许可证，没有密钥或资格门槛。
+- 自动化验证：最终 `npm run verify` 在非受限环境完整通过，包括 lint、许可证、shared/web/worker typecheck、115 项 unit、66 项 integration、production build、三段 bundle 门禁、Chromium 桌面/移动 22 项与 Firefox 2 项 E2E。资源 E2E 覆盖行号、格式化、无效 JSON 禁止保存、原生查找替换、320 px 搜索/工具栏边界、44 px 控件、保存 payload、预览不加载编辑器及 12 帧 Dialog 几何稳定；移动资源场景额外连续执行两次通过。
+- Worker：`npm run worker:dry-run` 在非受限环境成功读取 57 个静态文件，上传预览 750.02 KiB / gzip 122.23 KiB，识别 `WORKSPACE_BUCKET` 后以 dry-run 退出；没有部署、发布、修改 R2 或轮换 Secret。
+- DevTools：production build + 真实后端只读代理下，资源列表和预览均无 CodeEditor 请求；冷缓存切换编辑时 JS/CSS 传输分别为 116,917/1,226 bytes，耗时约 12.0/3.3 ms。真实大型节点 JSON 场景 LCP 1647 ms、INP 40 ms、CLS 0.00，Dialog 与标题栏切换前后尺寸不变；320×900 下页面、Modal、编辑器与搜索面板横向溢出均为 0，控制台无 error/warn/issue。
+- 遗留风险：CodeMirror 首次创建视口仍有约 120 ms 的内部强制布局，但发生在懒加载后固定高度加载区内，没有阻塞模式切换的下一帧或造成 CLS；本地无 CrUX 数据，部署后仍应观察真实低端设备。当前改动尚未提交、推送、部署或发布。
+- 测试交接：production build 只读预览继续运行于 `http://127.0.0.1:8787/#/resources/nodes`，供用户检查 CodeMirror 编辑窗口。
+- 下一任务：用户完成视觉与键盘交互验收后，再决定是否提交或部署。
+
+### 2026-07-31：FE-3164 3.1.0 正式版发布准备
+
+- 发布判断：用户已确认 Beta 生产环境与最终 CodeMirror 测试页均未发现功能、布局或待优化问题；ADR-059 批准在保持 `3.0.0` 回滚基线和数据语义不变的前提下准备 `3.1.0` 稳定版。package 与 lockfile 已更新为 `3.1.0`，应用导航栏和关于页从 package metadata 构建时注入版本，避免多处手工版本漂移。
+- 清理：删除 CodeEditor 从未被调用的只读模式、相关 Compartment 与条件工具栏分支，删除旧 Mantine JsonInput 遗留的双语 `invalidJson` 词条；复核仓库无 `.vue`、PrimeVue/PrimeUI、Pinia、Tailwind、`react.html`、旧 JsonEditor 或公开 Release 文档残留。没有删除仍承担运维、数据迁移或历史决策职责的文件。
+- 公开文档：根中英文 README 新增 `3.1.0` 版本徽章与面向用户的 React/Mantine/CodeMirror/Cloudflare 技术栈；ADR-057 明确允许这两类当前信息，但 README/Wiki 仍不得包含更新日志、发布说明、包体积、测试记录或开发过程。运维文档改为适用 `v3.1.0`，不增加公开 changelog。
+- 干净验证：`npm ci --cache .npm-cache` 成功安装 275 个包；随后非受限环境完整 `npm run verify` 通过，包括 lint、许可证、shared/web/worker typecheck、115 项 unit、66 项 integration、production build、三段 bundle 门禁、Chromium 桌面/移动 22 项与 Firefox 2 项 E2E。Worker dry-run 读取 57 个静态文件，上传预览 750.02 KiB / gzip 122.23 KiB，识别 `WORKSPACE_BUCKET` 后退出，没有部署。
+- 依赖与安全：React Router 7.18.2、Mantine 9.5.0、CodeMirror View 6.43.7 均为 npm 当前稳定版本；许可证门禁通过。生产 audit 的 2 个 high 都来自 React Router RSC Mode CSRF，本 SPA 没有 RSC、Server Action 或 action endpoint，攻击路径不可达且上游无修复版本。完整工具链 audit 的 24 个 high 来自同一 React Router 通告及 ESLint/minimatch、Vite/PostCSS、Wrangler/Miniflare/Sharp；均不进入 Worker 静态运行时，保持记录并禁止 `audit fix --force`。
+- 包体积：清理后的普通应用 JS 为 283.16/285.81 KiB gzip，CodeEditor 为 113.53/120.00 KiB gzip，总量为 396.69/405.81 KiB gzip，三项均通过 ADR-058 门禁。
+- 浏览器复核：production build + 真实后端只读代理中，导航栏与关于页均显示 `v3.1.0`，控制台无 error、warn 或 issue；没有执行保存、同步或其他生产写入。
+- 遗留风险：CodeMirror 首次视口布局与无 CrUX 数据的风险维持 FE-3163 结论；Wrangler 4.116.0 虽可用，但最新 Miniflare 仍依赖受通告影响的 Sharp 0.35.2，临发布不做无收益工具链升级。仓库改动仍未提交、推送、打 tag、发布或部署。
+- 测试交接：`http://127.0.0.1:8787/#/resources/nodes` 保留 `3.1.0` production build 编辑窗口，代理继续阻止持久化写入。
+- 下一任务：由用户审阅工作区后决定提交、推送、打 `v3.1.0` tag 和部署的具体顺序。
 
 ## 完成记录模板
 

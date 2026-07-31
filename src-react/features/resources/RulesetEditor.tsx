@@ -79,6 +79,19 @@ function validateSources(value: string, messages: { publicOnly: string; invalid:
   return null;
 }
 
+function latestSourceUpdate(sources: RulesetSource[]) {
+  return sources.reduce<string | undefined>((latest, source) => {
+    if (!source.last_updated || Number.isNaN(Date.parse(source.last_updated))) return latest;
+    return !latest || Date.parse(source.last_updated) > Date.parse(latest) ? source.last_updated : latest;
+  }, undefined);
+}
+
+function formatSourceUpdate(value: string, locale: string) {
+  return new Intl.DateTimeFormat(locale, {
+    year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit',
+  }).format(new Date(value));
+}
+
 export function RulesetEditor({
   value, onChange, onValidityChange,
 }: {
@@ -86,7 +99,7 @@ export function RulesetEditor({
   onChange: (value: string) => void;
   onValidityChange: (valid: boolean) => void;
 }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [{ document, draft: initialDraft }] = useState(() => readDraft(value));
   const [draft, setDraft] = useState(initialDraft);
   const [sourceError, setSourceError] = useState<string | null>(null);
@@ -107,8 +120,8 @@ export function RulesetEditor({
     const previousSources = new Map(readSources(output).map((source) => [source.url, source]));
     const sources = lines(next.sourceUrls).map((url) => {
       const previous = previousSources.get(url);
-      return previous?.interval_hours === next.intervalHours
-        ? previous
+      return previous
+        ? { ...previous, interval_hours: next.intervalHours }
         : { url, interval_hours: next.intervalHours };
     });
     const manual: Partial<RuleBucket> = {};
@@ -131,43 +144,57 @@ export function RulesetEditor({
     { key: 'domain_keyword', label: 'DOMAIN_KEYWORD', description: t('rulesets.domainKeywordDescription'), placeholder: 'google\nyoutube' },
     { key: 'domain_regex', label: 'DOMAIN_REGEX', description: t('rulesets.domainRegexDescription'), placeholder: '^www\\.example\\.com$' },
   ];
+  const sourceMap = new Map(readSources(document).map((source) => [source.url, source]));
+  const lastUpdated = latestSourceUpdate(lines(draft.sourceUrls).flatMap((url) => {
+    const source = sourceMap.get(url);
+    return source ? [source] : [];
+  }));
+  const defaultOpenSections = [
+    ...(lines(draft.sourceUrls).length ? ['source'] : []),
+    ...manualKeys.filter((key) => lines(draft.manual[key]).length),
+  ];
 
   return (
-    <Accordion multiple defaultValue={['source', ...manualKeys]} variant="separated" radius="md" order={3}>
+    <Accordion multiple defaultValue={defaultOpenSections} variant="separated" radius="md" order={3}>
       <Accordion.Item value="source">
         <Accordion.Control>
           <Group gap="xs"><Badge variant="light" color="violet">SOURCE</Badge><Text size="sm" c="dimmed">{t('rulesets.sourceDescription')}</Text></Group>
         </Accordion.Control>
         <Accordion.Panel>
           <Stack gap="sm">
-            <Select
-              label={t('rulesets.sourceInterval')}
-              value={String(draft.intervalHours)}
-              data={[
-                { value: '0', label: t('rulesets.intervalNever') },
-                { value: '24', label: t('rulesets.intervalDaily') },
-                { value: '168', label: t('rulesets.intervalWeekly') },
-                { value: '720', label: t('rulesets.intervalMonthly') },
-                { value: '8760', label: t('rulesets.intervalYearly') },
-              ]}
-              onChange={(value) => write({ ...draft, intervalHours: Number(value ?? 0) })}
-            />
             <Textarea
-              label="SOURCE" aria-label="SOURCE" autosize minRows={5}
+              aria-label="SOURCE" autosize minRows={5}
               placeholder="https://raw.githubusercontent.com/.../ruleset.json"
               value={draft.sourceUrls} error={sourceError}
               styles={{ input: { fontFamily: 'var(--mantine-font-family-monospace)' } }}
               onChange={(event) => write({ ...draft, sourceUrls: event.currentTarget.value })}
             />
-            {draft.sourceUrls && (
-              <Group justify="flex-end">
+            <Group gap="xs" align="center" wrap="wrap" data-testid="ruleset-source-controls">
+              <Text size="xs" c="dimmed" flex="1 1 10rem" miw={0}>
+                {lastUpdated
+                  ? t('rulesets.sourceUpdated', { time: formatSourceUpdate(lastUpdated, i18n.resolvedLanguage ?? i18n.language) })
+                  : t('rulesets.sourceNeverUpdated')}
+              </Text>
+              <Select
+                size="xs" w="8rem" flex="0 0 8rem" aria-label={t('rulesets.sourceInterval')}
+                value={String(draft.intervalHours)}
+                data={[
+                  { value: '0', label: t('rulesets.intervalNever') },
+                  { value: '24', label: t('rulesets.intervalDaily') },
+                  { value: '168', label: t('rulesets.intervalWeekly') },
+                  { value: '720', label: t('rulesets.intervalMonthly') },
+                  { value: '8760', label: t('rulesets.intervalYearly') },
+                ]}
+                onChange={(value) => write({ ...draft, intervalHours: Number(value ?? 0) })}
+              />
+              {draft.sourceUrls && (
                 <Tooltip label={t('rulesets.removeSection', { section: 'SOURCE' })}>
-                  <ActionIcon color="red" variant="subtle" aria-label={t('rulesets.removeSection', { section: 'SOURCE' })} onClick={() => write({ ...draft, sourceUrls: '', intervalHours: 0 })}>
+                  <ActionIcon size={44} color="red" variant="subtle" aria-label={t('rulesets.removeSection', { section: 'SOURCE' })} onClick={() => write({ ...draft, sourceUrls: '', intervalHours: 0 })}>
                     <Trash2 size={17} />
                   </ActionIcon>
                 </Tooltip>
-              </Group>
-            )}
+              )}
+            </Group>
           </Stack>
         </Accordion.Panel>
       </Accordion.Item>
@@ -180,7 +207,7 @@ export function RulesetEditor({
           <Accordion.Panel>
             <Stack gap="xs">
               <Textarea
-                label={section.label} aria-label={section.label} autosize minRows={5}
+                aria-label={section.label} autosize minRows={5}
                 placeholder={section.placeholder} value={draft.manual[section.key]}
                 styles={{ input: { fontFamily: 'var(--mantine-font-family-monospace)' } }}
                 onChange={(event) => write({ ...draft, manual: { ...draft.manual, [section.key]: event.currentTarget.value } })}

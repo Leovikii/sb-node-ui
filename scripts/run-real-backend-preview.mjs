@@ -1,7 +1,7 @@
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
 import react from '@vitejs/plugin-react';
-import { createServer } from 'vite';
+import { createServer, preview } from 'vite';
 
 const REAL_BACKEND_ORIGIN = 'https://ss.vkio.org';
 const LOCAL_HOST = '127.0.0.1';
@@ -20,52 +20,71 @@ export function isAllowedRealBackendRequest(method, requestUrl) {
 }
 
 function readOnlyGuard() {
+  const installGuard = (server) => {
+    server.middlewares.use((request, response, next) => {
+      if (!request.url?.startsWith('/api/') || isAllowedRealBackendRequest(request.method, request.url)) {
+        next();
+        return;
+      }
+
+      response.statusCode = 403;
+      response.setHeader('Content-Type', 'application/json; charset=utf-8');
+      response.end(JSON.stringify({
+        error: {
+          code: 'REAL_BACKEND_PREVIEW_READ_ONLY',
+          details: 'This local preview blocks persistent writes to the real backend.',
+        },
+      }));
+    });
+  };
+
   return {
     name: 'sing-sub-real-backend-read-only-guard',
-    configureServer(server) {
-      server.middlewares.use((request, response, next) => {
-        if (!request.url?.startsWith('/api/') || isAllowedRealBackendRequest(request.method, request.url)) {
-          next();
-          return;
-        }
-
-        response.statusCode = 403;
-        response.setHeader('Content-Type', 'application/json; charset=utf-8');
-        response.end(JSON.stringify({
-          error: {
-            code: 'REAL_BACKEND_PREVIEW_READ_ONLY',
-            details: 'This local preview blocks persistent writes to the real backend.',
-          },
-        }));
-      });
-    },
+    configureServer: installGuard,
+    configurePreviewServer: installGuard,
   };
 }
 
-export async function startRealBackendPreview() {
-  const server = await createServer({
+const proxy = {
+  '/api': {
+    target: REAL_BACKEND_ORIGIN,
+    changeOrigin: true,
+    secure: true,
+    cookieDomainRewrite: '',
+    cookiePathRewrite: '/',
+  },
+};
+
+export async function startRealBackendPreview({ production = false } = {}) {
+  const commonConfig = {
     configFile: false,
     root: projectRoot,
     plugins: [readOnlyGuard(), react()],
-    server: {
-      host: LOCAL_HOST,
-      port: LOCAL_PORT,
-      strictPort: true,
-      proxy: {
-        '/api': {
-          target: REAL_BACKEND_ORIGIN,
-          changeOrigin: true,
-          secure: true,
-          cookieDomainRewrite: '',
-          cookiePathRewrite: '/',
-        },
+  };
+  const server = production
+    ? await preview({
+      ...commonConfig,
+      preview: {
+        host: LOCAL_HOST,
+        port: LOCAL_PORT,
+        strictPort: true,
+        proxy,
       },
-    },
-  });
+    })
+    : await createServer({
+      ...commonConfig,
+      server: {
+        host: LOCAL_HOST,
+        port: LOCAL_PORT,
+        strictPort: true,
+        proxy,
+      },
+    });
 
-  await server.listen();
+  if (!production) await server.listen();
   server.printUrls();
   console.warn(`Real backend: ${REAL_BACKEND_ORIGIN}`);
+  console.warn(`Frontend mode: ${production ? 'production build' : 'Vite development'}`);
   console.warn('Safety mode: only reads, authentication, and ephemeral POST /api/preview are forwarded.');
 
   const close = async () => {
@@ -77,5 +96,5 @@ export async function startRealBackendPreview() {
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
-  await startRealBackendPreview();
+  await startRealBackendPreview({ production: process.argv.includes('--production') });
 }

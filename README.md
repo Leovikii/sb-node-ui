@@ -4,9 +4,9 @@
 
 [简体中文](README_zh-CN.md) · [Wiki](https://github.com/Leovikii/Sing-Sub/wiki) · [License](LICENSE)
 
-Sing-Sub is a self-hosted control plane for editing and distributing [sing-box](https://sing-box.sagernet.org/) configurations.
+![Version 3.1.0](https://img.shields.io/badge/version-3.1.0-e64980)
 
-Version: [`v3.1.0-beta.1`](docs/wiki/Release-3.1.0-beta.1.en.md) (beta; `v3.0.0` remains the rollback baseline)
+Sing-Sub is a self-hosted control plane for editing and distributing [sing-box](https://sing-box.sagernet.org/) configurations.
 
 ## Features
 
@@ -16,6 +16,12 @@ Version: [`v3.1.0-beta.1`](docs/wiki/Release-3.1.0-beta.1.en.md) (beta; `v3.0.0`
 - Distribute private configuration subscriptions with compact signed tokens and public rule sets as JSON or SRS.
 - Optionally import, back up, and explicitly synchronize data with a private GitHub repository.
 - Optionally provision a repository-scoped GitHub Actions workflow to compile SRS artifacts.
+
+## Technology
+
+- WebUI: React 19, Mantine 9, CodeMirror 6, TypeScript, and Vite.
+- Runtime and storage: Cloudflare Workers and private Cloudflare R2.
+- Optional integrations: private GitHub repository sync and GitHub Actions SRS compilation.
 
 ## Deployment
 
@@ -30,22 +36,6 @@ The recommended deployment uses a GitHub fork and Cloudflare Workers Builds:
 The initializer creates or reuses `sing-sub-data`, generates missing runtime signing secrets, and creates an empty workspace with the Momo adapter on first login. GitHub data sync, PAT, and SRS compilation are optional after deployment.
 
 See the [complete deployment guide](https://github.com/Leovikii/Sing-Sub/wiki/Deployment) or its [version-controlled source](docs/wiki/Deployment.md).
-
-## Technology
-
-- React 19, Mantine 9, React Router, Zustand, and react-i18next
-- TypeScript, Vite, CodeMirror, and Zod
-- Cloudflare Workers, Static Assets, Cache API, and R2
-- Vitest and Playwright
-
-## Development
-
-```powershell
-npm ci
-npm run dev
-npm run verify
-npm run worker:dry-run
-```
 
 User and operator documentation is indexed in [docs](docs/README.md).
 

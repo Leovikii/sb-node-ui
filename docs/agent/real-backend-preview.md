@@ -7,6 +7,15 @@ npm run dev:real-backend
 http://127.0.0.1:8787/#/connect
 ```
 
+需要核对生产构建的代码分块与运行时性能时，先构建并以相同只读代理启动：
+
+```text
+npm run preview:real-backend
+http://127.0.0.1:8787/#/connect
+```
+
+`preview:real-backend` 直接服务 `dist`，不得用尚未重新构建的输出做性能结论。
+
 该入口只监听 `127.0.0.1`，固定代理到正式后端，不接受可配置的任意上游。管理员口令由用户直接输入浏览器，不写入仓库、命令行或日志。
 
 安全策略：

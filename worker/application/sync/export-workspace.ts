@@ -4,7 +4,12 @@ import {
   type WorkspaceSnapshot,
 } from '../../../shared';
 import type { SyncFile } from '../ports/sync-gateway';
-import { canonicalJson, canonicalPrettyJson, sha256Hex } from '../../domain/revisions/canonical-json';
+import {
+  canonicalJson,
+  canonicalPrettyJson,
+  orderedPrettyJson,
+  sha256Hex,
+} from '../../domain/revisions/canonical-json';
 import { encodeSyncPath } from '../../domain/sync/sync-path';
 
 export const SYNC_MANIFEST_PATH = 'sing-sub/manifest.json';
@@ -13,6 +18,7 @@ export interface WorkspaceSyncExport {
   businessFiles: SyncFile[];
   files: SyncFile[];
   contentHash: string;
+  serializedHash: string;
   manifest: SyncManifest;
   manifestHash: string;
 }
@@ -32,26 +38,39 @@ export async function hashSyncFiles(files: SyncFile[]): Promise<string> {
 export async function exportSyncBusinessFiles(source: SyncBusinessSource): Promise<{
   files: SyncFile[];
   contentHash: string;
+  serializedHash: string;
 }> {
-  const entries: { path: string; content: string }[] = [];
+  const entries: { path: string; value: unknown }[] = [];
   for (const profile of source.profiles) {
-    entries.push({ path: encodeSyncPath('configs', profile.name), content: canonicalPrettyJson(profile) });
+    entries.push({ path: encodeSyncPath('configs', profile.name), value: profile });
   }
   for (const kind of ['nodes', 'templates', 'adapters', 'rulesets'] as const) {
     for (const [entityId, asset] of Object.entries(source.assets[kind])) {
-      entries.push({ path: encodeSyncPath(kind, entityId), content: canonicalPrettyJson(asset.content) });
+      entries.push({ path: encodeSyncPath(kind, entityId), value: asset.content });
     }
   }
   entries.sort((left, right) => left.path.localeCompare(right.path));
 
   const businessFiles: SyncFile[] = [];
+  const semanticFiles: SyncFile[] = [];
   for (const entry of entries) {
+    const content = orderedPrettyJson(entry.value);
     businessFiles.push({
-      ...entry,
-      contentHash: await sha256Hex(entry.content),
+      path: entry.path,
+      content,
+      contentHash: await sha256Hex(content),
+    });
+    semanticFiles.push({
+      path: entry.path,
+      content: '',
+      contentHash: await sha256Hex(canonicalPrettyJson(entry.value)),
     });
   }
-  return { files: businessFiles, contentHash: await hashSyncFiles(businessFiles) };
+  return {
+    files: businessFiles,
+    contentHash: await hashSyncFiles(semanticFiles),
+    serializedHash: await hashSyncFiles(businessFiles),
+  };
 }
 
 export async function exportWorkspaceForSync(
@@ -66,7 +85,7 @@ export async function exportWorkspaceForSync(
     workspaceRevision: snapshot.revisionId,
     baseRemoteRevision: options.baseRemoteRevision,
     exportedAt: options.exportedAt,
-    contentHash: business.contentHash,
+    contentHash: business.serializedHash,
     files: business.files.map(file => ({
       path: file.path,
       contentHash: file.contentHash,
@@ -82,6 +101,7 @@ export async function exportWorkspaceForSync(
       { path: SYNC_MANIFEST_PATH, content: manifestContent, contentHash: manifestHash },
     ],
     contentHash: business.contentHash,
+    serializedHash: business.serializedHash,
     manifest,
     manifestHash,
   };

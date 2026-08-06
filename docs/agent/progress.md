@@ -1,9 +1,10 @@
-# v3.1.0 进度
+# v3.1.x 进度
 
-更新日期：2026-07-31
+更新日期：2026-08-06
 回滚基线：`3.0.0`
-当前版本：`3.1.0`
-状态：`3.1.0` 正式版发布准备完成；尚未推送、打 tag、发布或部署。
+当前稳定版：`3.1.0`
+当前候选：`3.1.1`
+状态：`3.1.0` 已正式发布；`3.1.1` 同步顺序修复与版本元数据完成，待生产更新测试。
 
 ## 任务台账
 
@@ -32,6 +33,8 @@
 | FE-3162 | DONE | 删除公开发布说明与版本入口，收敛 README/Wiki 文档边界 |
 | FE-3163 | DONE | 精简 CodeMirror 6、编辑器功能恢复与真实浏览器性能验收 |
 | FE-3164 | DONE | `3.1.0` 正式版发布审计、版本收束与遗留清理 |
+| FE-3170 | DONE | `3.1.1` GitHub 双向同步 JSON 内容顺序保真 |
+| FE-3171 | DONE | `3.1.1` 版本元数据与生产更新测试准备 |
 | FE-3152 | DONE | 默认入口切换 React 与 Vue 迁移栈清理 |
 | FE-3153 | DONE | `3.1.0-beta.1` 版本、公开文档与发布说明收束 |
 
@@ -244,6 +247,21 @@
 - 遗留风险：CodeMirror 首次视口布局与无 CrUX 数据的风险维持 FE-3163 结论；Wrangler 4.116.0 虽可用，但最新 Miniflare 仍依赖受通告影响的 Sharp 0.35.2，临发布不做无收益工具链升级。仓库改动仍未提交、推送、打 tag、发布或部署。
 - 测试交接：`http://127.0.0.1:8787/#/resources/nodes` 保留 `3.1.0` production build 编辑窗口，代理继续阻止持久化写入。
 - 下一任务：由用户审阅工作区后决定提交、推送、打 `v3.1.0` tag 和部署的具体顺序。
+
+### 2026-08-06：FE-3170 GitHub 双向同步 JSON 内容顺序保真
+
+- 完成内容：业务 Profile、节点、模板、Adapter 与 Ruleset 的 GitHub 输出改为保留对象字段和数组顺序的两空格、LF、末尾换行 JSON；GitHub 拉取通过 Zod 完整校验后保留原始已验证对象，R2 revision 校验不再用 schema 输出重建字段顺序。
+- 同步兼容：既有递归排序哈希继续作为顺序无关语义摘要，因此 `3.1.0` 的 `baseContentHash` 无需迁移；新增标准化输出表示指纹。语义相同但字段顺序不同时不产生业务冲突，显式 push/pull 分别以 R2/GitHub 一侧顺序执行，不再错误返回 noop。Manifest 文件摘要继续对应实际输出字节。
+- 测试：先新增并确认导出、导入和 order-only 同步方向测试在旧实现失败；最终完整 `npm run verify` 在非受限环境通过，包括 lint、许可证、shared/web/worker typecheck、116 项 unit、67 项 integration、production build、三段 bundle 门禁、Chromium 桌面/移动 22 项与 Firefox 2 项 E2E。
+- 边界：不新增依赖、不修改 workspace schema、revision、SRS、认证或 GitHub 覆盖安全语义；不保存原始空白文本。`3.1.1` 仍在开发中，package 与公开稳定版本保持 `3.1.0`，本任务未提交、推送、部署或写入真实 R2/GitHub。
+- 下一任务：继续收集 `3.1.1` 修复项；准备发布时再统一更新 package、应用与 README 稳定版本号并执行发布审计。
+
+### 2026-08-06：FE-3171 3.1.1 生产更新测试准备
+
+- 完成内容：package、lockfile、构建时应用版本、中英文 README 徽章、版本 E2E 和部署恢复文档统一更新为 `3.1.1`；公开文档只展示当前项目版本，不增加更新日志或发布说明。
+- 验证：package 三处版本一致性检查为 `3.1.1 / 3.1.1 / 3.1.1`；完整 shared/web/worker typecheck 与 production build 通过，桌面和移动 Chromium 版本显示专项 2 项通过。版本更新前同一代码状态的完整 `npm run verify` 已通过 116 项 unit、67 项 integration、Chromium 22 项及 Firefox 2 项。
+- 发布边界：当前工作区已准备供用户推送生产更新测试，但本任务未执行 commit、push、tag、GitHub Release、Cloudflare 部署、Secret 变更或 R2/GitHub 数据操作。生产测试确认后再把 `3.1.1` 从候选状态收束为已发布稳定版。
+- 下一任务：用户在生产验证 GitHub push/pull 后反馈结果，随后决定是否继续收集修复或完成 `3.1.1` 发布审计。
 
 ## 完成记录模板
 

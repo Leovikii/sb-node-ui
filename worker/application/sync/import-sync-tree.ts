@@ -41,6 +41,7 @@ export interface ImportedSyncTree {
   assets: WorkspaceSnapshot['assets'];
   files: SyncFile[];
   contentHash: string;
+  serializedHash: string;
 }
 
 function noteFromJson(value: unknown): string | undefined {
@@ -101,7 +102,7 @@ export async function importSyncTree(input: SyncFile[]): Promise<ImportedSyncTre
       if (parsed.data.name !== managed.entityId) {
         throw new SyncTreeValidationError('NAME_MISMATCH', file.path, 'Profile name does not match its filename');
       }
-      profiles.push(parsed.data);
+      profiles.push(json as Profile);
       continue;
     }
 
@@ -120,15 +121,16 @@ export async function importSyncTree(input: SyncFile[]): Promise<ImportedSyncTre
         throw new SyncTreeValidationError('INVALID_SCHEMA', file.path, 'Adapter preset schema or name is invalid');
       }
     }
-    const asset = jsonAssetSchema.safeParse({
+    const candidate = {
       path: file.path,
       note: noteFromJson(json),
       content: json,
-    });
+    };
+    const asset = jsonAssetSchema.safeParse(candidate);
     if (!asset.success) {
       throw new SyncTreeValidationError('INVALID_SCHEMA', file.path, 'Asset schema is invalid');
     }
-    assets[managed.kind][managed.entityId] = asset.data as JsonAsset;
+    assets[managed.kind][managed.entityId] = candidate as JsonAsset;
   }
 
   profiles.sort((left, right) => left.order - right.order || left.name.localeCompare(right.name));
@@ -147,5 +149,11 @@ export async function importSyncTree(input: SyncFile[]): Promise<ImportedSyncTre
   }
 
   const normalized = await exportSyncBusinessFiles({ profiles, assets });
-  return { profiles, assets, files: normalized.files, contentHash: normalized.contentHash };
+  return {
+    profiles,
+    assets,
+    files: normalized.files,
+    contentHash: normalized.contentHash,
+    serializedHash: normalized.serializedHash,
+  };
 }

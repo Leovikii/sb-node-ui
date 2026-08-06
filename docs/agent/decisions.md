@@ -30,6 +30,7 @@
 | ADR-057 | ACCEPTED | 根 README 可展示当前稳定版本与用户相关技术栈；README/Wiki 不维护发布说明、更新日志或开发过程记录。 |
 | ADR-058 | ACCEPTED | JSON 编辑重新采用精简的官方 CodeMirror 6，编辑态懒加载并对应用与编辑器 chunk 分别执行预算门禁。 |
 | ADR-059 | ACCEPTED | `3.1.0` 在 Beta 生产验证、完整回归、依赖与性能审计通过后作为稳定版准备发布。 |
+| ADR-060 | ACCEPTED | GitHub 双向同步保留业务 JSON 的对象字段与数组顺序；语义哈希继续忽略对象字段顺序以兼容既有同步基线。 |
 
 ## ADR-050：React 19 + Mantine 9
 
@@ -98,4 +99,10 @@ CodeMirror 只能在非规则集资源进入编辑状态后动态加载；资源
 `3.1.0` 发布门槛采用 ADR-058 的三段 JavaScript 预算，取代 ADR-053 测试版阶段的单一 15% 总量例外；同时要求完整 `npm run verify`、生产依赖许可证检查、Worker dry-run、生产构建真实浏览器性能与移动端边界全部通过。React Router 的现有 high advisory 仅影响未使用的 RSC Mode，本项目没有 RSC、Server Action 或服务端 action endpoint，且上游没有修复版本，因此记录为不可达的已审阅风险，不阻断浏览器 SPA 发布。
 
 本决策只授权把仓库内容和版本元数据准备为 `3.1.0`。Git push、tag、GitHub Release、Cloudflare 部署、Secret 变更和 R2 写入仍需单独明确授权。
+
+## ADR-060：GitHub 同步保留 JSON 内容顺序
+
+`3.1.1` 修复业务 JSON 在 R2 与 GitHub 之间同步时被递归按键名排序的问题。Profile、节点、模板、Adapter 与 Ruleset 使用保留对象插入顺序的两空格、LF、末尾换行 JSON 输出；数组顺序始终保持。Manifest 仍可使用稳定键排序。
+
+同步继续使用既有的顺序无关语义哈希判断业务冲突，以兼容 `3.1.0` 已保存在 R2 的 `baseContentHash`。另行比较标准化输出的表示指纹；语义相同但字段顺序不同时不制造冲突，但显式 push/pull 必须分别以 R2/GitHub 一侧的顺序为准执行，不能返回 noop。Zod 仍负责完整校验，校验成功后保留原始 JSON 对象而不使用 schema 重建结果。此决策不引入原始源码副本，不保证保留任意空白格式。
 

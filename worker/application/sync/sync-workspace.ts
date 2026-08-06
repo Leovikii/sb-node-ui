@@ -18,7 +18,11 @@ import {
   createSrsJobId,
   SRS_COMPILER_VERSION,
 } from '../../domain/rulesets/compiler-source';
-import { exportSyncBusinessFiles, exportWorkspaceForSync, hashSyncFiles } from './export-workspace';
+import {
+  exportSyncBusinessFiles,
+  exportWorkspaceForSync,
+  hashSyncFiles,
+} from './export-workspace';
 import {
   importSyncTree,
   SyncTreeValidationError,
@@ -87,6 +91,7 @@ async function loadSyncContext(
   const local: SyncTreeState = {
     revision: current.revision,
     contentHash: localBusiness.contentHash,
+    serializedHash: localBusiness.serializedHash,
     files: localBusiness.files,
   };
   let importedRemote: ImportedSyncTree;
@@ -97,12 +102,14 @@ async function loadSyncContext(
     throw new InvalidRemoteSyncTreeError(current, local, {
       revision: download.remoteRevision,
       contentHash: await hashSyncFiles(download.files),
+      serializedHash: await hashSyncFiles(download.files),
       files: download.files,
     }, error);
   }
   const remote: SyncTreeState = {
     revision: download.remoteRevision,
     contentHash: importedRemote.contentHash,
+    serializedHash: importedRemote.serializedHash,
     files: importedRemote.files,
   };
   const sync = current.snapshot.sync;
@@ -117,6 +124,7 @@ async function loadSyncContext(
       revision: sync.baseWorkspaceRevision,
       remoteRevision: sync.baseRemoteRevision,
       contentHash: sync.baseContentHash,
+      serializedHash: baseBusiness.serializedHash,
       files: baseBusiness.files,
     };
   }
@@ -352,7 +360,7 @@ export async function pushWorkspaceToGithub(
   if (context.current.revision !== command.expectedRevision) {
     throw new WorkspaceConflictError(command.expectedRevision, context.current.revision);
   }
-  if (context.analysis.sameContent) {
+  if (context.analysis.sameContent && context.local.serializedHash === context.remote.serializedHash) {
     if (context.base?.remoteRevision === context.remote.revision &&
         context.base.contentHash === context.local.contentHash) {
       return {
@@ -450,7 +458,7 @@ export async function pullWorkspaceFromGithub(
   if (context.current.revision !== command.expectedRevision) {
     throw new WorkspaceConflictError(command.expectedRevision, context.current.revision);
   }
-  if (context.analysis.sameContent) {
+  if (context.analysis.sameContent && context.local.serializedHash === context.remote.serializedHash) {
     if (context.base?.remoteRevision === context.remote.revision &&
         context.base.contentHash === context.remote.contentHash) {
       return {

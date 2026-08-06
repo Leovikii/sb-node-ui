@@ -4,6 +4,7 @@ import type { SyncFile } from '../../application/ports/sync-gateway';
 export interface SyncTreeState {
   revision: string;
   contentHash: string;
+  serializedHash: string;
   files: SyncFile[];
 }
 

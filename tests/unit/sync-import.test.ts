@@ -23,6 +23,17 @@ describe('sync tree import', () => {
     expect(imported.contentHash).toBe(formattedDifferently.contentHash);
     expect(imported.files[0].content.endsWith('\n')).toBe(true);
     expect(imported.files[1].content).toContain('  "log"');
+    expect(Object.keys(imported.assets.templates.default.content as Record<string, unknown>))
+      .toEqual(['route', 'log']);
+    expect(Object.keys(formattedDifferently.assets.templates.default.content as Record<string, unknown>))
+      .toEqual(['log', 'route']);
+    expect(Object.keys(formattedDifferently.profiles[0])).toEqual([
+      'order', 'inboundRules', 'rules', 'nodesPath', 'templateUrl', 'name',
+    ]);
+    expect(imported.files[1].content.indexOf('"route"'))
+      .toBeLessThan(imported.files[1].content.indexOf('"log"'));
+    expect(formattedDifferently.files[1].content.indexOf('"log"'))
+      .toBeLessThan(formattedDifferently.files[1].content.indexOf('"route"'));
   });
 
   it('rejects name mismatches, duplicate case variants, and missing references', async () => {

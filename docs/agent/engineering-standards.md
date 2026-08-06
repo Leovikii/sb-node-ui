@@ -8,6 +8,7 @@
 - 浏览器只通过 typed API client 访问服务端，不直接调用 R2、GitHub 或全局 `fetch`。
 - 跨层传递明确 DTO，不传播 R2 object、GitHub response、React 类型或 UI 状态。
 - R2 Standard 仍是唯一持久化真相来源；GitHub 只是用户主动触发的 sync/backup gateway。
+- GitHub sync 的业务 JSON 必须保留对象字段与数组顺序；递归键排序只用于顺序无关的语义哈希或机器生成的 manifest，不得用于业务文件输出。
 
 详细数据、revision、SRS、会话和同步语义见 [data-architecture.md](./data-architecture.md)。
 

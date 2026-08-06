@@ -17,6 +17,10 @@ export function canonicalPrettyJson(value: unknown): string {
   return `${JSON.stringify(normalize(value), null, 2)}\n`;
 }
 
+export function orderedPrettyJson(value: unknown): string {
+  return `${JSON.stringify(value, null, 2)}\n`;
+}
+
 export async function sha256Hex(value: string | Uint8Array): Promise<string> {
   const bytes = typeof value === 'string' ? new TextEncoder().encode(value) : value;
   const digest = await crypto.subtle.digest('SHA-256', bytes);

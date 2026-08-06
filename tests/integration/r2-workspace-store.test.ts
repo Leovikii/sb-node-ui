@@ -78,6 +78,31 @@ describe('R2WorkspaceStore', () => {
     });
   });
 
+  it('keeps validated profile field order when publishing and reading a revision', async () => {
+    const bucket = new InMemoryR2Bucket();
+    const store = new R2WorkspaceStore(bucket);
+    const ordered = snapshot('revision-profile-order', null);
+    ordered.profiles = [{
+      order: 0,
+      inboundRules: [],
+      rules: [],
+      nodesPath: '',
+      templateUrl: '',
+      name: 'default',
+    }];
+
+    await store.create({ workspaceId: 'workspace-1', snapshot: ordered });
+    const stored = await bucket.get(r2ObjectKeys.revision('workspace-1', 'revision-profile-order'));
+    const raw = JSON.parse(await stored!.text());
+    expect(Object.keys(raw.profiles[0])).toEqual([
+      'order', 'inboundRules', 'rules', 'nodesPath', 'templateUrl', 'name',
+    ]);
+    const read = await store.read('workspace-1');
+    expect(Object.keys(read.snapshot.profiles[0])).toEqual([
+      'order', 'inboundRules', 'rules', 'nodesPath', 'templateUrl', 'name',
+    ]);
+  });
+
   it('does not replace an existing workspace head', async () => {
     const bucket = new InMemoryR2Bucket();
     const store = new R2WorkspaceStore(bucket);

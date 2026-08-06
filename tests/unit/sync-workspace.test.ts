@@ -37,6 +37,17 @@ function snapshot(note = 'base'): WorkspaceSnapshot {
   };
 }
 
+function snapshotWithTemplate(order: 'route-first' | 'log-first'): WorkspaceSnapshot {
+  const source = snapshot();
+  source.assets.templates.default = {
+    path: 'sing-sub/templates/default.json',
+    content: order === 'route-first'
+      ? { route: {}, log: { level: 'info' } }
+      : { log: { level: 'info' }, route: {} },
+  };
+  return source;
+}
+
 class FakeSyncGateway implements SyncGateway {
   remoteRevision = 'commit-1';
   files: SyncFile[] = [];
@@ -184,5 +195,43 @@ describe('safe directional GitHub sync', () => {
     await expect(store.read('primary')).resolves.toMatchObject({
       snapshot: { profiles: [{ note: 'remote-2' }] },
     });
+  });
+
+  it('applies the selected direction when only JSON object order differs', async () => {
+    const pushStore = new InMemoryWorkspaceStore('primary', snapshotWithTemplate('route-first'));
+    const pushGateway = new FakeSyncGateway();
+    await pushGateway.setRemote(snapshotWithTemplate('route-first'));
+    const pushDependencies = { workspaceStore: pushStore, gateway: pushGateway, connection };
+    const alignedPush = await pushWorkspaceToGithub(pushDependencies, {
+      workspaceId: 'primary', expectedRevision: 'revision-1', overwrite: false,
+    });
+    await pushGateway.setRemote(snapshotWithTemplate('log-first'), 'commit-2');
+
+    await expect(getWorkspaceSyncStatus(pushDependencies, 'primary')).resolves.toMatchObject({
+      status: 'synced', sameContent: true, canPush: true, canPull: true,
+    });
+    const pushed = await pushWorkspaceToGithub(pushDependencies, {
+      workspaceId: 'primary', expectedRevision: alignedPush.revision, overwrite: false,
+    });
+    expect(pushed.action).toBe('pushed');
+    const pushedTemplate = pushGateway.pushCalls.at(-1)!.files
+      .find(file => file.path === 'sing-sub/templates/default.json')!.content;
+    expect(pushedTemplate.indexOf('"route"')).toBeLessThan(pushedTemplate.indexOf('"log"'));
+
+    const pullStore = new InMemoryWorkspaceStore('primary', snapshotWithTemplate('route-first'));
+    const pullGateway = new FakeSyncGateway();
+    await pullGateway.setRemote(snapshotWithTemplate('route-first'));
+    const pullDependencies = { workspaceStore: pullStore, gateway: pullGateway, connection };
+    const alignedPull = await pullWorkspaceFromGithub(pullDependencies, {
+      workspaceId: 'primary', expectedRevision: 'revision-1', overwrite: false,
+    });
+    await pullGateway.setRemote(snapshotWithTemplate('log-first'), 'commit-2');
+    const pulled = await pullWorkspaceFromGithub(pullDependencies, {
+      workspaceId: 'primary', expectedRevision: alignedPull.revision, overwrite: false,
+    });
+    expect(pulled.action).toBe('pulled');
+    const pulledSnapshot = (await pullStore.read('primary')).snapshot;
+    expect(Object.keys(pulledSnapshot.assets.templates.default.content as Record<string, unknown>))
+      .toEqual(['log', 'route']);
   });
 });

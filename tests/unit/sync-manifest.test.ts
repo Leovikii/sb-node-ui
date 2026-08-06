@@ -27,7 +27,10 @@ function snapshot(): WorkspaceSnapshot {
     assets: {
       nodes: {},
       templates: {
-        default: { path: 'sing-sub/templates/default.json', content: { log: { level: 'info' } } },
+        default: {
+          path: 'sing-sub/templates/default.json',
+          content: { experimental: {}, log: { level: 'info' }, inbounds: [], outbounds: [] },
+        },
       },
       adapters: {
         momo: { path: 'sing-sub/adapters/momo.json', content: MOMO_ADAPTER_PRESET },
@@ -79,10 +82,20 @@ describe('workspace sync export', () => {
     ]);
     expect(syncManifestSchema.parse(first.manifest)).toEqual(first.manifest);
     expect(first.manifest.files).toHaveLength(4);
-    expect(first.manifest.contentHash).toBe(first.contentHash);
+    expect(first.manifest.contentHash).toBe(first.serializedHash);
+    for (const file of first.businessFiles) {
+      expect(file.contentHash).toBe(await sha256Hex(file.content));
+    }
     expect(first.manifestHash).toBe(await sha256Hex(first.files.at(-1)!.content));
     expect(first.files[0].content).toContain('\n  "');
     expect(first.files[0].content.endsWith('\n')).toBe(true);
+    const template = first.files.find(file => file.path === 'sing-sub/templates/default.json')!.content;
+    expect(template.indexOf('"experimental"')).toBeLessThan(template.indexOf('"log"'));
+    expect(template.indexOf('"log"')).toBeLessThan(template.indexOf('"inbounds"'));
+    expect(template.indexOf('"inbounds"')).toBeLessThan(template.indexOf('"outbounds"'));
+    const config = first.files.find(file => file.path === 'sing-sub/configs/default.json')!.content;
+    expect(config.indexOf('"name"')).toBeLessThan(config.indexOf('"templateUrl"'));
+    expect(config.indexOf('"templateUrl"')).toBeLessThan(config.indexOf('"rules"'));
     const serialized = JSON.stringify(first);
     expect(serialized).not.toContain('private-owner');
     expect(serialized).not.toContain('job-private');

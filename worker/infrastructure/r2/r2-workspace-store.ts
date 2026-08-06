@@ -205,7 +205,7 @@ export class R2WorkspaceStore implements WorkspaceStore<WorkspaceSnapshot> {
     if (!parsed.success || parsed.data.workspaceId !== workspaceId || parsed.data.revisionId !== revisionId) {
       throw new WorkspaceStorageCorruptError('Revision schema or identity is invalid');
     }
-    return parsed.data;
+    return document as WorkspaceSnapshot;
   }
 
   private validateSnapshot(
@@ -217,7 +217,7 @@ export class R2WorkspaceStore implements WorkspaceStore<WorkspaceSnapshot> {
     if (!parsed.success || parsed.data.workspaceId !== workspaceId || parsed.data.previousRevisionId !== previousRevisionId) {
       throw new WorkspaceStorageCorruptError('Snapshot schema, workspace ID, or revision chain is invalid');
     }
-    return parsed.data;
+    return source;
   }
 
   private async serializeSnapshot(snapshot: WorkspaceSnapshot): Promise<{ body: string; hash: string }> {

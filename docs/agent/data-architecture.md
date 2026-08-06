@@ -172,7 +172,7 @@ callback 发布：
 
 GitHub 只存在于 `GithubSyncGateway`，commit 代码不得被普通 CRUD 或编译流程导入。
 
-同步使用三个整体业务内容摘要：`B` 是 R2 中上次成功同步的 base content hash，`L` 是 current workspace 导出的 local content hash，`G` 是 GitHub 当前受管文件实际解析、规范化后的 remote content hash。时间戳只用于展示和审计，不参与覆盖判断。R2 同时保留 base workspace revision 和 base GitHub commit；GitHub `sing-sub/manifest.json` 只描述最近一次 Worker 导出，用户从 IDE 修改文件后可以自然落后，不能把 manifest 当作远端真相。
+同步使用三个整体业务语义摘要：`B` 是 R2 中上次成功同步的 base content hash，`L` 是 current workspace 导出的 local content hash，`G` 是 GitHub 当前受管文件实际解析、规范化后的 remote content hash。语义摘要忽略对象字段顺序但保留数组顺序，以兼容既有 base 并避免空白格式制造冲突；标准化输出另有表示指纹，用于识别语义相同但对象字段顺序不同的情况。时间戳只用于展示和审计，不参与覆盖判断。R2 同时保留 base workspace revision 和 base GitHub commit；GitHub `sing-sub/manifest.json` 只描述最近一次 Worker 导出，用户从 IDE 修改文件后可以自然落后，不能把 manifest 当作远端真相。
 
 状态矩阵：
 
@@ -188,18 +188,18 @@ L = G         -> 内容已一致，更新 sync base 即可
 
 ### Push
 
-1. 读取并校验 expected current workspace revision，转换为稳定路径和两空格缩进、LF、末尾换行的 canonical pretty JSON。
+1. 读取并校验 expected current workspace revision，转换为稳定路径和保留对象字段/数组顺序的两空格缩进、LF、末尾换行 JSON；不得对业务 JSON 递归按键名排序。
 2. 下载 GitHub 当前受管文件并计算 `B/L/G`；远端已变化时阻止普通 push。
-3. 内容已一致时不创建 Git commit，只更新 R2 sync base。
+3. 语义与表示均一致时不创建 Git commit，只更新 R2 sync base；仅对象字段顺序不同时，显式 push 仍以 R2 顺序创建 Git commit。
 4. 允许推送时生成 manifest，并使用一次 Git tree/commit 替换完整受管树；不 force push，受管目录外文件保持不变。
 5. GitHub head 更新成功后发布新的 workspace revision，记录 base workspace revision、base GitHub commit 与 base content hash。
 
 ### Pull
 
 1. 下载 GitHub 当前 commit 的实际受管文件集合；manifest 可校验但不决定文件存在性或新旧。
-2. 校验 private repository、路径、数量、大小、UTF-8、JSON schema、文件名和内部引用，再规范化内容并计算 `B/L/G`。
+2. 校验 private repository、路径、数量、大小、UTF-8、JSON schema、文件名和内部引用；校验成功后保留原始对象字段与数组顺序，再规范化空白并计算语义摘要和表示指纹。
 3. local 已变化时阻止普通 pull；双方变化时返回整体 conflict，不自动 last-write-wins。
-4. 允许拉取时将完整 remote 状态转换为新 workspace snapshot；删除由远端完整树中缺失文件表达。
+4. 允许拉取时将完整 remote 状态及其 JSON 内容顺序转换为新 workspace snapshot；语义相同但顺序不同时，显式 pull 仍以 GitHub 顺序发布新 revision。删除由远端完整树中缺失文件表达。
 5. 使用 expected workspace revision 发布；并发变化返回 conflict，远端不会造成部分 R2 数据可见。
 6. 若 ruleset source 变化且 SRS 已启用，发布后通过既有 reconcile 流程补建和 dispatch 派生构建。
 
